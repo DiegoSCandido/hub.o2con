@@ -1,4 +1,4 @@
-import { type LucideIcon } from "lucide-react";
+import { type LucideIcon, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import { buildSsoUrl } from "@/lib/sso";
@@ -34,15 +34,19 @@ export default function AppCard({ icon: Icon, title, description, status = "onli
             )}
             strokeWidth={1.5}
           />
-          <span
-            className={cn(
-              "inline-block h-2 w-2 rounded-full",
-              status === "online" && "bg-[hsl(var(--status-online))]",
-              status === "offline" && "bg-muted-foreground",
-              status === "maintenance" && "bg-[hsl(var(--status-maintenance))]"
-            )}
-            title={statusLabel[status]}
-          />
+          {status === "online" ? (
+            <span
+              className="inline-block h-2 w-2 rounded-full bg-[hsl(var(--status-online))]"
+              title={statusLabel[status]}
+            />
+          ) : status === "offline" ? (
+            <X className="h-4 w-4 shrink-0 text-destructive" strokeWidth={2.5} title={statusLabel[status]} />
+          ) : (
+            <span
+              className="inline-block h-2 w-2 rounded-full bg-[hsl(var(--status-maintenance))]"
+              title={statusLabel[status]}
+            />
+          )}
         </div>
         <h3 className="font-display text-base font-semibold text-card-foreground">{title}</h3>
         <p className="mt-1 text-sm text-muted-foreground leading-relaxed">{description}</p>

@@ -67,14 +67,14 @@ const Login = () => {
         <img
           src={loginBg}
           alt="O2controle"
-          className="absolute inset-0 w-full h-full object-cover"
+          className="absolute inset-0 w-full h-full object-cover animate-ken-burns"
         />
 
         <div className="absolute inset-0 bg-gradient-to-br from-primary/80 via-primary/60 to-secondary/80" />
 
         <div className="relative z-10 flex flex-col items-center justify-center w-full p-12 text-white">
           <div className="text-center max-w-md animate-fade-in">
-            <div className="w-28 h-28 rounded-3xl bg-white/10 backdrop-blur-lg border border-white/20 flex items-center justify-center mx-auto mb-8 shadow-2xl animate-float p-4">
+            <div className="w-28 h-28 rounded-3xl bg-white/10 backdrop-blur-lg border border-white/20 flex items-center justify-center mx-auto mb-8 shadow-2xl p-4">
               <img
                 src={o2conIcon}
                 alt="O2con"

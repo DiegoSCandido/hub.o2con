@@ -38,12 +38,12 @@ import loginBg from "@/assets/login-bg.jpg";
 
 const apps = [
   { icon: ScrollText, title: "Alvarás", description: "Controle e acompanhamento de alvarás e licenças de funcionamento.", status: "online" as const, url: "https://o2controle-gestao-alvaras.vercel.app/", sso: true },
-  { icon: ShieldCheck, title: "Certificado Digital", description: "Gestão de certificados digitais, validades e renovações.", status: "online" as const },
-  { icon: FileText, title: "CND's", description: "Emissão e monitoramento de Certidões Negativas de Débito.", status: "online" as const },
-  { icon: GitBranch, title: "Gestão de Processos", description: "Acompanhamento de processos administrativos e fluxos de trabalho.", status: "online" as const },
-  { icon: Building2, title: "Cadastro de Empresas", description: "Registro e manutenção de dados cadastrais de empresas.", status: "online" as const },
-  { icon: FileSignature, title: "Procurações", description: "Controle de procurações, vencimentos e outorgantes.", status: "online" as const },
-  { icon: AlertTriangle, title: "Situação Fiscal", description: "Consulta e monitoramento da situação fiscal das empresas.", status: "online" as const },
+  { icon: ShieldCheck, title: "Certificado Digital", description: "Gestão de certificados digitais, validades e renovações.", status: "offline" as const },
+  { icon: FileText, title: "CND's", description: "Emissão e monitoramento de Certidões Negativas de Débito.", status: "offline" as const },
+  { icon: GitBranch, title: "Gestão de Processos", description: "Acompanhamento de processos administrativos e fluxos de trabalho.", status: "offline" as const },
+  { icon: Building2, title: "Cadastro de Empresas", description: "Registro e manutenção de dados cadastrais de empresas.", status: "offline" as const },
+  { icon: FileSignature, title: "Procurações", description: "Controle de procurações, vencimentos e outorgantes.", status: "offline" as const },
+  { icon: AlertTriangle, title: "Situação Fiscal", description: "Consulta e monitoramento da situação fiscal das empresas.", status: "offline" as const },
   { icon: FileSearch, title: "Consulta Simples Nacional", description: "Consulta de enquadramento e situação no regime do Simples Nacional.", status: "online" as const, url: "https://simples-status-checker.vercel.app/", sso: true },
 ];
 
@@ -162,7 +162,7 @@ function DashboardContent() {
       >
         {/* Background image - fixed, não rola com o conteúdo */}
         <div
-          className="fixed top-0 right-0 bottom-0 z-0 bg-cover bg-center bg-no-repeat opacity-[.4] dark:opacity-[0.06]"
+          className="fixed top-0 right-0 bottom-0 z-0 bg-cover bg-center bg-no-repeat opacity-[.2] dark:opacity-[0.06]"
           style={{
             left: `${sidebarWidth}px`,
             backgroundImage: `url(${loginBg})`,
