@@ -18,6 +18,7 @@ import {
 import Sidebar from "@/components/Sidebar";
 import AppCard from "@/components/AppCard";
 import { useAuth } from "@/contexts/AuthContext";
+import { SidebarProvider, useSidebar } from "@/contexts/SidebarContext";
 import {
   Dialog,
   DialogContent,
@@ -32,9 +33,10 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import loginBg from "@/assets/login-bg.jpg";
 
 const apps = [
-  { icon: ScrollText, title: "Alvarás", description: "Controle e acompanhamento de alvarás e licenças de funcionamento.", status: "online" as const, url: "https://o2controle-frontend.vercel.app/dashboard", sso: true },
+  { icon: ScrollText, title: "Alvarás", description: "Controle e acompanhamento de alvarás e licenças de funcionamento.", status: "online" as const, url: "https://o2controle-gestao-alvaras.vercel.app/", sso: true },
   { icon: ShieldCheck, title: "Certificado Digital", description: "Gestão de certificados digitais, validades e renovações.", status: "online" as const },
   { icon: FileText, title: "CND's", description: "Emissão e monitoramento de Certidões Negativas de Débito.", status: "online" as const },
   { icon: GitBranch, title: "Gestão de Processos", description: "Acompanhamento de processos administrativos e fluxos de trabalho.", status: "online" as const },
@@ -124,8 +126,9 @@ const usefulLinks = [
   { title: "E-CAC", url: "https://cav.receita.fazenda.gov.br/autenticacao/login", description: "Centro Virtual de Atendimento da Receita Federal" },
 ];
 
-export default function Index() {
+function DashboardContent() {
   const { user } = useAuth();
+  const { sidebarWidth } = useSidebar();
   const [loading, setLoading] = useState(true);
   const [visibleCount, setVisibleCount] = useState(0);
   const [prefeiturasOpen, setPrefeiturasOpen] = useState(false);
@@ -152,7 +155,27 @@ export default function Index() {
     <div className="min-h-screen bg-background">
       <Sidebar />
 
-      <main className="ml-[260px] min-h-screen transition-all duration-150">
+      <main
+        className="relative min-h-screen transition-all duration-150"
+        style={{ marginLeft: `${sidebarWidth}px` }}
+      >
+        {/* Background image - fixed, não rola com o conteúdo */}
+        <div
+          className="fixed top-0 right-0 bottom-0 z-0 bg-cover bg-center bg-no-repeat opacity-[.4] dark:opacity-[0.06]"
+          style={{
+            left: `${sidebarWidth}px`,
+            backgroundImage: `url(${loginBg})`,
+            backgroundAttachment: "fixed",
+          }}
+          aria-hidden
+        />
+        <div
+          className="fixed top-0 right-0 bottom-0 z-0 bg-background/70 dark:bg-background/80"
+          style={{ left: `${sidebarWidth}px` }}
+          aria-hidden
+        />
+
+        <div className="relative z-10">
         {/* Top bar */}
         <header className="sticky top-0 z-40 flex h-16 items-center justify-between border-b border-border bg-card px-8">
           <div>
@@ -350,7 +373,16 @@ export default function Index() {
             )}
           </AnimatePresence>
         </div>
+        </div>
       </main>
     </div>
+  );
+}
+
+export default function Index() {
+  return (
+    <SidebarProvider>
+      <DashboardContent />
+    </SidebarProvider>
   );
 }

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { useSidebar } from "@/contexts/SidebarContext";
 import {
   LayoutGrid,
   ScrollText,
@@ -45,7 +46,7 @@ const bottomNav: NavItem[] = [
 export default function Sidebar() {
   const navigate = useNavigate();
   const { logout } = useAuth();
-  const [collapsed, setCollapsed] = useState(false);
+  const { collapsed, setCollapsed } = useSidebar();
   const [activeIndex, setActiveIndex] = useState(0);
 
   return (
@@ -55,9 +56,18 @@ export default function Sidebar() {
         collapsed ? "w-[72px]" : "w-[260px]"
       )}
     >
-      {/* Logo */}
-      <div className="flex h-16 items-center gap-3 border-b border-sidebar-border px-5">
-        <img src={logo} alt="O2con" className="h-8 w-auto shrink-0" />
+      {/* Logo - tamanho fixo, não encolhe quando sidebar minimiza */}
+      <div
+        className={cn(
+          "flex h-16 items-center border-b border-sidebar-border shrink-0",
+          collapsed ? "justify-center overflow-visible px-0" : "gap-3 px-5"
+        )}
+      >
+        <img
+          src={logo}
+          alt="O2con"
+          className="h-8 w-[120px] shrink-0 object-contain object-left"
+        />
         {!collapsed && (
           <span className="font-display text-lg font-semibold tracking-tight text-sidebar-foreground">
             Hub
