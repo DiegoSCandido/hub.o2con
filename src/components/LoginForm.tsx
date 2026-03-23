@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
-import { Eye, EyeOff, Loader2, LogIn } from "lucide-react";
+import { Eye, EyeOff, Loader2, LogIn, Mail } from "lucide-react";
 import { toast } from "sonner";
 
 import { useAuth } from "@/contexts/AuthContext";
@@ -8,6 +8,14 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 const LoginForm = () => {
   const navigate = useNavigate();
@@ -17,6 +25,9 @@ const LoginForm = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
+  const [forgotOpen, setForgotOpen] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState("");
+  const [forgotLoading, setForgotLoading] = useState(false);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -83,6 +94,43 @@ const LoginForm = () => {
     }
   };
 
+  const handleForgotPassword = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!forgotEmail.trim()) {
+      toast.error("Informe seu e-mail");
+      return;
+    }
+    setForgotLoading(true);
+    try {
+      const apiUrl = import.meta.env.VITE_API_URL || "/api";
+      const res = await fetch(`${apiUrl}/auth/forgot-password`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: forgotEmail.trim().toLowerCase() }),
+      });
+      const data = await res.json().catch(() => ({}));
+
+      if (res.status === 429) {
+        toast.error(`Muitas tentativas. Tente novamente em ${data.retryAfter || 60} segundos.`);
+        return;
+      }
+
+      if (!res.ok) {
+        toast.error(data.message || "Erro ao enviar e-mail.");
+        return;
+      }
+
+      toast.success(data.message || "Verifique seu e-mail.");
+      setForgotOpen(false);
+      setForgotEmail("");
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Erro ao processar.";
+      toast.error(msg.includes("Failed to fetch") ? "Não foi possível conectar ao servidor." : msg);
+    } finally {
+      setForgotLoading(false);
+    }
+  };
+
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
       <div className="space-y-2">
@@ -144,11 +192,60 @@ const LoginForm = () => {
         </div>
         <button
           type="button"
+          onClick={() => setForgotOpen(true)}
           className="text-sm text-primary hover:text-primary-light transition-colors font-medium"
         >
           Esqueceu a senha?
         </button>
       </div>
+
+      <Dialog open={forgotOpen} onOpenChange={setForgotOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Esqueceu a senha?</DialogTitle>
+            <DialogDescription>
+              Informe seu e-mail cadastrado. Se estiver no sistema, você receberá um link para criar uma nova senha.
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleForgotPassword} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="forgot-email">E-mail</Label>
+              <Input
+                id="forgot-email"
+                type="email"
+                placeholder="seu@email.com"
+                value={forgotEmail}
+                onChange={(e) => setForgotEmail(e.target.value)}
+                className="h-11"
+                disabled={forgotLoading}
+              />
+            </div>
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setForgotOpen(false)}
+                disabled={forgotLoading}
+              >
+                Cancelar
+              </Button>
+              <Button type="submit" disabled={forgotLoading}>
+                {forgotLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Enviando...
+                  </>
+                ) : (
+                  <>
+                    <Mail className="mr-2 h-4 w-4" />
+                    Enviar link
+                  </>
+                )}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
 
       <Button
         type="submit"
