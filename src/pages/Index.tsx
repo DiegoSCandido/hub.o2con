@@ -12,6 +12,7 @@ import {
   ExternalLink,
   Search,
   Bell,
+  Mail,
   MessageCircle,
   Slack,
 } from "lucide-react";
@@ -191,6 +192,15 @@ function DashboardContent() {
                 className="h-9 w-64 rounded-lg border border-input bg-background pl-10 pr-4 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none transition-colors duration-150"
               />
             </div>
+            <a
+              href="https://mail.google.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground transition-colors duration-150 hover:bg-accent hover:text-foreground"
+              title="Gmail"
+            >
+              <Mail className="h-5 w-5" strokeWidth={1.5} />
+            </a>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button className="relative flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground transition-colors duration-150 hover:bg-accent hover:text-foreground">
