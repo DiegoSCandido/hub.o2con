@@ -1,39 +1,11 @@
-import type { CSSProperties } from "react";
 import LoginForm from "@/components/LoginForm";
 import Logo from "@/components/Logo";
 import loginBg from "@/assets/login-bg.jpg";
 import o2conIcon from "@/assets/o2con-icon.png";
 
-const loginThemeVars: CSSProperties & Record<string, string> = {
-  "--background": "210 25% 97%",
-  "--foreground": "220 30% 15%",
-  "--card": "0 0% 100%",
-  "--card-foreground": "220 30% 15%",
-  "--popover": "0 0% 100%",
-  "--popover-foreground": "220 30% 15%",
-  "--primary": "207 100% 33%",
-  "--primary-foreground": "0 0% 100%",
-  "--primary-light": "207 85% 55%",
-  "--primary-glow": "207 100% 65%",
-  "--secondary": "311 69% 34%",
-  "--secondary-foreground": "0 0% 100%",
-  "--secondary-light": "311 65% 50%",
-  "--secondary-glow": "311 70% 60%",
-  "--muted": "210 20% 94%",
-  "--muted-foreground": "220 15% 45%",
-  "--accent": "311 60% 96%",
-  "--accent-foreground": "311 69% 34%",
-  "--destructive": "0 75% 55%",
-  "--destructive-foreground": "0 0% 100%",
-  "--border": "210 25% 90%",
-  "--input": "210 25% 92%",
-  "--ring": "207 100% 45%",
-  "--radius": "0.75rem",
-};
-
 const Login = () => {
   return (
-    <div className="min-h-screen flex" style={loginThemeVars}>
+    <div className="min-h-screen flex">
       {/* Left Side - Login Form */}
       <div className="w-full lg:w-1/2 flex items-center justify-center p-6 lg:p-12 bg-background relative">
         <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-secondary/5 pointer-events-none" />

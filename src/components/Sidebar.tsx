@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSidebar } from "@/contexts/SidebarContext";
+import { buildSsoUrl } from "@/lib/sso";
 import {
   LayoutGrid,
   ScrollText,
@@ -19,23 +20,27 @@ import {
   ChevronRight,
 } from "lucide-react";
 import logo from "@/assets/logo-o2con.png";
+import o2conIcon from "@/assets/o2con-icon.png";
 import { cn } from "@/lib/utils";
 
 interface NavItem {
   icon: React.ElementType;
   label: string;
+  /** Abre em nova aba (mesmo destino dos cards em Sistemas) */
+  externalUrl?: string;
+  sso?: boolean;
 }
 
 const mainNav: NavItem[] = [
   { icon: LayoutGrid, label: "Início" },
-  { icon: ScrollText, label: "Alvarás" },
-  { icon: ShieldCheck, label: "Certificado Digital" },
+  { icon: ScrollText, label: "Alvarás", externalUrl: "https://o2controle-gestao-alvaras.vercel.app/", sso: true },
+  { icon: ShieldCheck, label: "Certificado Digital", externalUrl: "https://certificados-o2con.vercel.app/", sso: true },
   { icon: FileText, label: "CND's" },
   { icon: GitBranch, label: "Gestão de Processos" },
   { icon: Building2, label: "Cadastro de Empresas" },
   { icon: FileSignature, label: "Procurações" },
   { icon: AlertTriangle, label: "Situação Fiscal" },
-  { icon: FileSearch, label: "Consulta Simples Nacional" },
+  { icon: FileSearch, label: "Consulta Simples Nacional", externalUrl: "https://simples-status-checker.vercel.app/", sso: true },
 ];
 
 const bottomNav: NavItem[] = [
@@ -45,33 +50,54 @@ const bottomNav: NavItem[] = [
 
 export default function Sidebar() {
   const navigate = useNavigate();
-  const { logout } = useAuth();
-  const { collapsed, setCollapsed } = useSidebar();
+  const { logout, getToken, isAuthenticated } = useAuth();
+  const { collapsed, setCollapsed, isDesktop, mobileMenuOpen, setMobileMenuOpen } = useSidebar();
   const [activeIndex, setActiveIndex] = useState(0);
 
+  const closeMobileIfNeeded = () => {
+    if (!isDesktop) setMobileMenuOpen(false);
+  };
+
+  const openExternalSystem = (url: string, sso?: boolean) => {
+    const tokenFromState = getToken();
+    const tokenFromStorage =
+      typeof window !== "undefined" ? localStorage.getItem("o2con_hub_token") : null;
+    const token = sso && isAuthenticated ? tokenFromState || tokenFromStorage : null;
+    const href = token ? buildSsoUrl(url, token) : url;
+    window.open(href, "_blank", "noopener,noreferrer");
+  };
+
   return (
-    <aside
-      className={cn(
-        "fixed left-0 top-0 z-50 flex h-screen flex-col border-r border-sidebar-border bg-sidebar transition-all duration-150",
-        collapsed ? "w-[72px]" : "w-[260px]"
+    <>
+      {!isDesktop && mobileMenuOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-black/50 lg:hidden"
+          aria-hidden
+          onClick={() => setMobileMenuOpen(false)}
+        />
       )}
-    >
-      {/* Logo - tamanho fixo, não encolhe quando sidebar minimiza */}
-      <div
+      <aside
         className={cn(
-          "flex h-16 items-center border-b border-sidebar-border shrink-0",
-          collapsed ? "justify-center overflow-visible px-0" : "gap-3 px-5"
+          "fixed left-0 top-0 z-50 flex h-screen flex-col border-r border-sidebar-border bg-sidebar duration-150",
+          "transition-[transform,width]",
+          collapsed ? "w-[72px]" : "w-[260px]",
+          isDesktop ? "translate-x-0" : mobileMenuOpen ? "translate-x-0" : "-translate-x-full"
         )}
       >
-        <img
-          src={logo}
-          alt="O2con"
-          className="h-8 w-[120px] shrink-0 object-contain object-left"
-        />
-        {!collapsed && (
-          <span className="font-display text-lg font-semibold tracking-tight text-sidebar-foreground">
-            Hub
-          </span>
+      {/* Logo completa (expandido) ou apenas ícone (minimizado) — como no alvarás */}
+      <div className="flex h-16 shrink-0 items-center justify-center border-b border-sidebar-border px-3">
+        {collapsed ? (
+          <img
+            src={o2conIcon}
+            alt="O2con"
+            className="h-9 w-9 shrink-0 object-contain object-center"
+          />
+        ) : (
+          <img
+            src={logo}
+            alt="O2con"
+            className="h-8 w-auto max-w-[min(200px,calc(100%-0.5rem))] shrink-0 object-contain object-center"
+          />
         )}
       </div>
 
@@ -83,11 +109,20 @@ export default function Sidebar() {
           return (
             <button
               key={item.label}
-              onClick={() => setActiveIndex(i)}
+              type="button"
+              onClick={() => {
+                if (item.externalUrl) {
+                  openExternalSystem(item.externalUrl, item.sso);
+                  closeMobileIfNeeded();
+                  return;
+                }
+                setActiveIndex(i);
+                closeMobileIfNeeded();
+              }}
               className={cn(
-                "flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors duration-150",
+                "flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-semibold transition-opacity duration-150",
                 isActive
-                  ? "bg-primary text-primary-foreground"
+                  ? "brand-gradient text-white shadow-glow-primary hover:opacity-90"
                   : "text-sidebar-muted hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
               )}
             >
@@ -109,6 +144,8 @@ export default function Sidebar() {
             return (
               <button
                 key={item.label}
+                type="button"
+                onClick={closeMobileIfNeeded}
                 className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-sidebar-muted transition-colors duration-150 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
               >
                 <Icon className="h-5 w-5 shrink-0" strokeWidth={1.5} />
@@ -121,6 +158,7 @@ export default function Sidebar() {
             onClick={() => {
               logout();
               navigate("/");
+              closeMobileIfNeeded();
             }}
             className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-destructive transition-colors duration-150 hover:bg-sidebar-accent"
           >
@@ -132,11 +170,13 @@ export default function Sidebar() {
 
       {/* Collapse toggle */}
       <button
+        type="button"
         onClick={() => setCollapsed(!collapsed)}
-        className="absolute -right-3 top-20 flex h-6 w-6 items-center justify-center rounded-full border border-border bg-card text-muted-foreground transition-colors duration-150 hover:text-foreground"
+        className="absolute -right-3 top-20 hidden h-6 w-6 items-center justify-center rounded-full border border-border bg-card text-muted-foreground transition-colors duration-150 hover:text-foreground lg:flex"
       >
         {collapsed ? <ChevronRight className="h-3 w-3" /> : <ChevronLeft className="h-3 w-3" />}
       </button>
     </aside>
+    </>
   );
 }

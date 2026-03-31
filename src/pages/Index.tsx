@@ -15,6 +15,7 @@ import {
   Mail,
   MessageCircle,
   Slack,
+  Menu,
 } from "lucide-react";
 import Sidebar from "@/components/Sidebar";
 import AppCard from "@/components/AppCard";
@@ -38,7 +39,7 @@ import loginBg from "@/assets/login-bg.jpg";
 
 const apps = [
   { icon: ScrollText, title: "Alvarás", description: "Controle e acompanhamento de alvarás e licenças de funcionamento.", status: "online" as const, url: "https://o2controle-gestao-alvaras.vercel.app/", sso: true },
-  { icon: ShieldCheck, title: "Certificado Digital", description: "Gestão de certificados digitais, validades e renovações.", status: "offline" as const },
+  { icon: ShieldCheck, title: "Certificado Digital", description: "Gestão de certificados digitais, validades e renovações.", status: "online" as const, url: "https://certificados-o2con.vercel.app/", sso: true },
   { icon: FileText, title: "CND's", description: "Emissão e monitoramento de Certidões Negativas de Débito.", status: "offline" as const },
   { icon: GitBranch, title: "Gestão de Processos", description: "Acompanhamento de processos administrativos e fluxos de trabalho.", status: "offline" as const },
   { icon: Building2, title: "Cadastro de Empresas", description: "Registro e manutenção de dados cadastrais de empresas.", status: "offline" as const },
@@ -129,7 +130,7 @@ const usefulLinks = [
 
 function DashboardContent() {
   const { user } = useAuth();
-  const { sidebarWidth } = useSidebar();
+  const { effectiveMainOffset, setMobileMenuOpen } = useSidebar();
   const [loading, setLoading] = useState(true);
   const [visibleCount, setVisibleCount] = useState(0);
   const [prefeiturasOpen, setPrefeiturasOpen] = useState(false);
@@ -153,18 +154,22 @@ function DashboardContent() {
   }, [loading, visibleCount]);
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen min-w-0 bg-background">
       <Sidebar />
 
       <main
-        className="relative min-h-screen transition-all duration-150"
-        style={{ marginLeft: `${sidebarWidth}px` }}
+        className="relative min-h-screen min-w-0 transition-all duration-150"
+        style={{
+          marginLeft: `${effectiveMainOffset}px`,
+          /* Evita 100% + margem da sidebar > largura da viewport (cortava o conteúdo no desktop) */
+          width: `calc(100% - ${effectiveMainOffset}px)`,
+        }}
       >
         {/* Background image - fixed, não rola com o conteúdo */}
         <div
           className="fixed top-0 right-0 bottom-0 z-0 bg-cover bg-center bg-no-repeat opacity-[.2] dark:opacity-[0.06]"
           style={{
-            left: `${sidebarWidth}px`,
+            left: `${effectiveMainOffset}px`,
             backgroundImage: `url(${loginBg})`,
             backgroundAttachment: "fixed",
           }}
@@ -172,24 +177,34 @@ function DashboardContent() {
         />
         <div
           className="fixed top-0 right-0 bottom-0 z-0 bg-background/70 dark:bg-background/80"
-          style={{ left: `${sidebarWidth}px` }}
+          style={{ left: `${effectiveMainOffset}px` }}
           aria-hidden
         />
 
         <div className="relative z-10">
         {/* Top bar */}
-        <header className="sticky top-0 z-40 flex h-16 items-center justify-between border-b border-border bg-card px-8">
-          <div>
-            <p className="text-sm font-semibold text-foreground">Bem-vindo</p>
-            <p className="text-xs text-muted-foreground">Administrador</p>
+        <header className="sticky top-0 z-40 flex h-16 min-w-0 items-center justify-between gap-2 border-b border-border bg-card px-3 sm:px-4 lg:px-8">
+          <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3">
+            <button
+              type="button"
+              className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-border bg-background text-muted-foreground transition-colors hover:bg-accent hover:text-foreground lg:hidden"
+              onClick={() => setMobileMenuOpen(true)}
+              aria-label="Abrir menu"
+            >
+              <Menu className="h-5 w-5" strokeWidth={1.5} />
+            </button>
+            <div className="min-w-0">
+              <p className="truncate text-sm font-semibold text-foreground">Bem-vindo</p>
+              <p className="hidden truncate text-xs text-muted-foreground sm:block">Administrador</p>
+            </div>
           </div>
-          <div className="flex items-center gap-4">
-            <div className="relative">
+          <div className="flex min-w-0 shrink-0 items-center gap-1.5 sm:gap-2 md:gap-4">
+            <div className="relative hidden min-w-0 sm:block md:max-w-[12rem] lg:max-w-none lg:w-64">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" strokeWidth={1.5} />
               <input
-                type="text"
+                type="search"
                 placeholder="Buscar..."
-                className="h-9 w-64 rounded-lg border border-input bg-background pl-10 pr-4 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none transition-colors duration-150"
+                className="h-9 w-full min-w-0 rounded-lg border border-input bg-background pl-10 pr-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none transition-colors duration-150 md:pr-4"
               />
             </div>
             <a
@@ -206,13 +221,13 @@ function DashboardContent() {
                 <button className="relative flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground transition-colors duration-150 hover:bg-accent hover:text-foreground">
                   <Bell className="h-5 w-5" strokeWidth={1.5} />
                   {unreadCount > 0 && (
-                    <span className="absolute right-2 top-2 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-semibold text-primary-foreground">
+                    <span className="absolute right-2 top-2 flex h-4 min-w-4 items-center justify-center rounded-full brand-gradient px-1 text-[10px] font-semibold text-white">
                       {unreadCount > 9 ? "9+" : unreadCount}
                     </span>
                   )}
                 </button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-80">
+              <DropdownMenuContent align="end" className="w-[min(100vw-2rem,20rem)] sm:w-80">
                 <DropdownMenuLabel>Notificações</DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 {userNotifications.length === 0 ? (
@@ -247,14 +262,14 @@ function DashboardContent() {
                 )}
               </DropdownMenuContent>
             </DropdownMenu>
-            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary font-display text-xs font-semibold text-primary-foreground">
+            <div className="flex h-8 w-8 items-center justify-center rounded-full brand-gradient font-display text-xs font-semibold text-white shadow-glow-primary">
               AD
             </div>
           </div>
         </header>
 
         {/* Content */}
-        <div className="px-8 py-8">
+        <div className="px-3 py-4 sm:px-4 sm:py-6 lg:px-8 lg:py-8">
           <AnimatePresence>
             {loading ? (
               <motion.div

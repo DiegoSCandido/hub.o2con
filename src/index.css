@@ -5,49 +5,54 @@
 @tailwind utilities;
 
 @layer base {
+  /* Paleta unificada com a tela de login (azul + magenta O2con) */
   :root {
-    --background: 228 25% 96%;
-    --foreground: 0 0% 11%;
+    --background: 210 25% 97%;
+    --foreground: 220 30% 15%;
 
     --card: 0 0% 100%;
-    --card-foreground: 0 0% 11%;
+    --card-foreground: 220 30% 15%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 11%;
+    --popover-foreground: 220 30% 15%;
 
-    --primary: 258 60% 55%;
+    --primary: 207 100% 33%;
     --primary-foreground: 0 0% 100%;
+    --primary-light: 207 85% 55%;
+    --primary-glow: 207 100% 65%;
 
-    --secondary: 228 25% 96%;
-    --secondary-foreground: 0 0% 11%;
+    --secondary: 311 69% 34%;
+    --secondary-foreground: 0 0% 100%;
+    --secondary-light: 311 65% 50%;
+    --secondary-glow: 311 70% 60%;
 
-    --muted: 228 20% 94%;
-    --muted-foreground: 0 0% 45%;
+    --muted: 210 20% 94%;
+    --muted-foreground: 220 15% 45%;
 
-    --accent: 258 60% 95%;
-    --accent-foreground: 258 60% 55%;
+    --accent: 311 60% 96%;
+    --accent-foreground: 311 69% 34%;
 
-    --destructive: 0 84% 60%;
+    --destructive: 0 75% 55%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 228 20% 90%;
-    --input: 228 20% 90%;
-    --ring: 258 60% 55%;
+    --border: 210 25% 90%;
+    --input: 210 25% 92%;
+    --ring: 207 100% 45%;
 
-    --radius: 0.5rem;
+    --radius: 0.75rem;
 
     --status-online: 152 69% 45%;
     --status-maintenance: 38 92% 50%;
 
     --sidebar-background: 0 0% 100%;
-    --sidebar-foreground: 0 0% 11%;
-    --sidebar-primary: 258 60% 55%;
+    --sidebar-foreground: 220 30% 15%;
+    --sidebar-primary: 207 100% 33%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 258 60% 95%;
-    --sidebar-accent-foreground: 258 60% 40%;
-    --sidebar-border: 228 20% 92%;
-    --sidebar-ring: 258 60% 55%;
-    --sidebar-muted: 0 0% 50%;
+    --sidebar-accent: 311 60% 96%;
+    --sidebar-accent-foreground: 311 69% 34%;
+    --sidebar-border: 210 25% 92%;
+    --sidebar-ring: 207 100% 45%;
+    --sidebar-muted: 220 15% 45%;
   }
 }
 
