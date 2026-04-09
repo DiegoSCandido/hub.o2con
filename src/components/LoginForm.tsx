@@ -4,6 +4,7 @@ import { Eye, EyeOff, Loader2, LogIn, Lock, Mail } from "lucide-react";
 import { toast } from "sonner";
 
 import { useAuth } from "@/contexts/AuthContext";
+import { collectSystemKeysFromUnknown } from "@/lib/user-systems";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
@@ -125,7 +126,7 @@ const LoginForm = () => {
         email: String(apiUser.email ?? ""),
         name: String(apiUser.fullName || apiUser.name || apiUser.email || "Usuário"),
         role: inferUserRole(apiUser),
-        systems: Array.isArray(apiUser.systems) ? (apiUser.systems as string[]) : [],
+        systems: collectSystemKeysFromUnknown(apiUser.systems),
         systemPermissions:
           apiUser.systemPermissions && typeof apiUser.systemPermissions === "object"
             ? (apiUser.systemPermissions as Record<string, "viewer" | "editor" | "admin">)

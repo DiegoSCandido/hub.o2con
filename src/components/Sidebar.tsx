@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import logo from "@/assets/logo-o2con.png";
 import o2conIcon from "@/assets/o2con-icon.png";
+import { isHubAlwaysVisibleSystem } from "@/lib/hub-always-visible-systems";
 import { cn } from "@/lib/utils";
 
 type SystemKey =
@@ -49,6 +50,8 @@ function normalizeSystemKey(value: string): SystemKey | null {
     situacao_fiscal: "fiscal",
     simples_nacional: "simples_nacional",
     consulta_simples_nacional: "simples_nacional",
+    simples: "simples_nacional",
+    consulta_simples: "simples_nacional",
   };
   return alias[key] || null;
 }
@@ -102,13 +105,15 @@ export default function Sidebar() {
       .filter((s): s is SystemKey => s !== null)
   );
 
+  const filteredMainNav = mainNav.filter((item) => {
+    if (!item.systemKey) return true;
+    return allowedSystems.has(item.systemKey) || isHubAlwaysVisibleSystem(item.systemKey);
+  });
+
   const mainNavItems: NavItem[] =
     user?.role === "admin"
-      ? [...mainNav, { icon: Settings, label: "Administração", internalPath: "/admin/users" }]
-      : mainNav.filter((item) => {
-          if (!item.systemKey) return true;
-          return allowedSystems.has(item.systemKey);
-        });
+      ? [...filteredMainNav, { icon: Settings, label: "Administração", internalPath: "/admin/users" }]
+      : filteredMainNav;
 
   return (
     <>

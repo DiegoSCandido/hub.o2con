@@ -7,6 +7,8 @@ import {
   type ReactNode,
 } from "react";
 
+import { collectSystemKeysFromUnknown, collectSystemsFromJwtClaims } from "@/lib/user-systems";
+
 const AUTH_STORAGE_KEY = "o2con_hub_auth";
 const TOKEN_STORAGE_KEY = "o2con_hub_token";
 
@@ -88,9 +90,14 @@ function normalizeUser(user: AuthUser, token?: string): AuthUser {
       ? "admin"
       : "user";
 
+  const systemsFromProfile = collectSystemKeysFromUnknown(user.systems);
+  const systemsFromToken = claims ? collectSystemsFromJwtClaims(claims) : [];
+  const systemsMerged = Array.from(new Set([...systemsFromProfile, ...systemsFromToken]));
+
   return {
     ...user,
     role: finalRole,
+    systems: systemsMerged.length > 0 ? systemsMerged : Array.isArray(user.systems) ? user.systems : [],
   };
 }
 

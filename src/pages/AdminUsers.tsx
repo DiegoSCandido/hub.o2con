@@ -7,17 +7,20 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
+import { isHubAlwaysVisibleSystem } from "@/lib/hub-always-visible-systems";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
 
 type UserRole = "admin" | "user";
-type PermissionLevel = "viewer" | "editor" | "admin";
-type SystemAccessLevel = PermissionLevel | "inactive";
+/** O que o backend costuma aceitar por sistema (perfil "Admin" do usuário é o campo `role`, não isto). */
+type SystemScopePermission = "viewer" | "editor";
+type SystemAccessLevel = SystemScopePermission | "inactive";
 type SystemKey =
   | "alvaras"
   | "certificados"
@@ -28,6 +31,7 @@ type SystemKey =
   | "fiscal"
   | "simples_nacional";
 
+/** Sistemas que o admin pode atribuir (Simples Nacional fica sempre no hub — ver `hub-always-visible-systems`). */
 const DASHBOARD_SYSTEMS: SystemKey[] = [
   "alvaras",
   "certificados",
@@ -36,7 +40,6 @@ const DASHBOARD_SYSTEMS: SystemKey[] = [
   "cadastro_empresas",
   "procuracoes",
   "fiscal",
-  "simples_nacional",
 ];
 
 const SYSTEM_LABELS: Record<SystemKey, string> = {
@@ -50,11 +53,114 @@ const SYSTEM_LABELS: Record<SystemKey, string> = {
   simples_nacional: "consulta simples nacional",
 };
 
-const PERMISSION_LABELS: Record<PermissionLevel, string> = {
-  viewer: "Visualizador",
-  editor: "Editor",
-  admin: "Administrador",
-};
+/** Alinha nomes vindos da API com as chaves do hub (ex.: consulta_simples_nacional → simples_nacional). */
+function normalizeSystemKeyFromApi(value: string): SystemKey | null {
+  const key = value.trim().toLowerCase().replace(/\s+/g, "_").replace(/-/g, "_");
+  const alias: Record<string, SystemKey> = {
+    alvaras: "alvaras",
+    certificados: "certificados",
+    cnds: "cnds",
+    cnd: "cnds",
+    processos: "processos",
+    gestao_de_processos: "processos",
+    cadastro_empresas: "cadastro_empresas",
+    cadastro_de_empresas: "cadastro_empresas",
+    procuracoes: "procuracoes",
+    fiscal: "fiscal",
+    situacao_fiscal: "fiscal",
+    simples_nacional: "simples_nacional",
+    consulta_simples_nacional: "simples_nacional",
+    simples: "simples_nacional",
+    consulta_simples: "simples_nacional",
+  };
+  return alias[key] || null;
+}
+
+/** Slugs que o enum Zod do backend pode exigir (inverso de `normalizeSystemKeyFromApi`). */
+function systemKeyToBackendSlug(key: SystemKey): string {
+  const slug: Partial<Record<SystemKey, string>> = {
+    processos: "gestao_de_processos",
+    cadastro_empresas: "cadastro_de_empresas",
+    fiscal: "situacao_fiscal",
+    simples_nacional: "consulta_simples_nacional",
+  };
+  return slug[key] ?? key;
+}
+
+function stripUndefined<T extends Record<string, unknown>>(obj: T): T {
+  const next = { ...obj };
+  for (const k of Object.keys(next)) {
+    if (next[k as keyof T] === undefined) delete next[k as keyof T];
+  }
+  return next;
+}
+
+/** Tenta salvar com vários formatos de `systems` até o Zod do backend aceitar. */
+async function saveAdminUserPayloadVariants(
+  apiFetch: <T>(path: string, init?: RequestInit) => Promise<T>,
+  path: string,
+  method: "PUT" | "POST",
+  base: Record<string, unknown>,
+  systemsToSave: SystemKey[],
+  perm: Record<string, SystemScopePermission>
+): Promise<void> {
+  const keyLevel = (slug: (k: SystemKey) => string) =>
+    systemsToSave.map((k) => ({ key: slug(k), level: perm[k] }));
+  const systemPermission = (slug: (k: SystemKey) => string) =>
+    systemsToSave.map((k) => ({ system: slug(k), permission: perm[k] }));
+  const systemPermissionUpper = (slug: (k: SystemKey) => string) =>
+    systemsToSave.map((k) => ({
+      system: slug(k),
+      permission: perm[k] === "viewer" ? "VIEWER" : "EDITOR",
+    }));
+  const record = (slug: (k: SystemKey) => string) =>
+    Object.fromEntries(systemsToSave.map((k) => [slug(k), perm[k]]));
+
+  const id = (k: SystemKey) => k;
+  const variants: Record<string, unknown>[] = [
+    { ...base, systems: systemPermission(id), systemPermissions: perm },
+    { ...base, systems: systemPermission(id) },
+    { ...base, systems: systemPermission(systemKeyToBackendSlug), systemPermissions: perm },
+    { ...base, systems: systemPermission(systemKeyToBackendSlug) },
+    { ...base, systems: systemPermissionUpper(id) },
+    { ...base, systems: systemPermissionUpper(systemKeyToBackendSlug) },
+    { ...base, systems: keyLevel(id), systemPermissions: perm },
+    { ...base, systems: keyLevel(id) },
+    { ...base, systems: keyLevel(systemKeyToBackendSlug), systemPermissions: perm },
+    { ...base, systems: keyLevel(systemKeyToBackendSlug) },
+    { ...base, systems: record(id) },
+    { ...base, systems: record(systemKeyToBackendSlug) },
+    { ...base, systems: systemsToSave, systemPermissions: perm },
+    { ...base, systemPermissions: perm },
+  ];
+
+  let lastErr: unknown;
+  for (const body of variants) {
+    try {
+      await apiFetch(path, {
+        method,
+        body: JSON.stringify(stripUndefined(body as Record<string, unknown>)),
+      });
+      return;
+    } catch (e) {
+      lastErr = e;
+      const status = (e as ApiRequestError).status;
+      if (status !== 400) throw e;
+    }
+  }
+  throw lastErr;
+}
+
+function normalizeSystemPermissionFromApi(value: unknown): SystemScopePermission {
+  const s = String(value || "")
+    .trim()
+    .toLowerCase();
+  if (s === "viewer" || s === "read" || s === "visualizador") return "viewer";
+  if (s === "editor" || s === "write") return "editor";
+  /** `admin` por sistema costuma ser rejeitado pelo backend; tratamos como acesso total ao módulo = editor. */
+  if (s === "admin" || s === "administrator" || s === "adm") return "editor";
+  return "editor";
+}
 
 type AdminUser = {
   id: string;
@@ -63,10 +169,28 @@ type AdminUser = {
   role: UserRole;
   isActive: boolean;
   systems: SystemKey[];
-  systemPermissions?: Partial<Record<SystemKey, PermissionLevel>>;
+  systemPermissions?: Partial<Record<SystemKey, SystemScopePermission>>;
   createdAt: string;
   updatedAt: string;
 };
+
+function normalizeAdminUserFromApi(u: AdminUser): AdminUser {
+  const systems = Array.from(
+    new Set(
+      (u.systems || [])
+        .map((s) => normalizeSystemKeyFromApi(String(s)))
+        .filter((s): s is SystemKey => s !== null)
+    )
+  );
+  const systemPermissions: Partial<Record<SystemKey, SystemScopePermission>> = {};
+  if (u.systemPermissions) {
+    for (const [k, v] of Object.entries(u.systemPermissions)) {
+      const nk = normalizeSystemKeyFromApi(k);
+      if (nk && v != null) systemPermissions[nk] = normalizeSystemPermissionFromApi(v);
+    }
+  }
+  return { ...u, systems, systemPermissions };
+}
 
 type AdminUsersApiResponse = AdminUser[] | {
   users?: AdminUser[];
@@ -94,7 +218,7 @@ type UserForm = {
   role: UserRole;
   isActive: boolean;
   systems: SystemKey[];
-  systemPermissions: Partial<Record<SystemKey, PermissionLevel>>;
+  systemPermissions: Partial<Record<SystemKey, SystemScopePermission>>;
 };
 
 const EMPTY_FORM: UserForm = {
@@ -129,6 +253,11 @@ function AdminUsersContent() {
     return true;
   }, [editing, form.email, form.fullName, form.password]);
 
+  const systemsInAuthModal = useMemo(
+    () => systems.filter((s) => !isHubAlwaysVisibleSystem(s)),
+    [systems]
+  );
+
   const apiFetch = useCallback(async <T,>(path: string, init?: RequestInit): Promise<T> => {
     const res = await fetch(`${apiUrl}${path}`, {
       ...init,
@@ -139,8 +268,23 @@ function AdminUsersContent() {
       },
     });
     if (!res.ok) {
-      const body = await res.json().catch(() => ({}));
-      const err = new Error(body.message || "Erro na requisição") as ApiRequestError;
+      const body = (await res.json().catch(() => ({}))) as Record<string, unknown>;
+      let message = typeof body.message === "string" ? body.message : "Erro na requisição";
+      if (Array.isArray(body.errors) && body.errors.length > 0) {
+        const detail = body.errors.map((x) => String(x)).join(". ");
+        message = message === "Erro na requisição" ? detail : `${message} ${detail}`;
+      }
+      const details = body.details as { fieldErrors?: Record<string, string[] | string> } | undefined;
+      if (details?.fieldErrors && typeof details.fieldErrors === "object") {
+        const parts = Object.entries(details.fieldErrors).flatMap(([field, v]) => {
+          const msgs = Array.isArray(v) ? v : [String(v)];
+          return msgs.map((m) => `${field}: ${m}`);
+        });
+        if (parts.length > 0) {
+          message = `${message} (${parts.join("; ")})`;
+        }
+      }
+      const err = new Error(message) as ApiRequestError;
       err.status = res.status;
       throw err;
     }
@@ -153,8 +297,8 @@ function AdminUsersContent() {
     setLoading(true);
     try {
       const endpoints = [
-        "/admin/users?all=true&includeInactive=true&page=1&limit=1000",
         "/admin/users",
+        "/admin/users?all=true&includeInactive=true&page=1&limit=1000",
         "/users",
       ];
 
@@ -179,13 +323,16 @@ function AdminUsersContent() {
       const pickSystems = (payload: AdminUsersApiResponse): SystemKey[] => {
         if (Array.isArray(payload)) return DASHBOARD_SYSTEMS;
         const nestedData = Array.isArray(payload.data) ? null : payload.data;
-        return (
+        const raw =
           payload.availableSystems ||
           payload.systems ||
           nestedData?.availableSystems ||
           nestedData?.systems ||
-          DASHBOARD_SYSTEMS
-        );
+          DASHBOARD_SYSTEMS;
+        const normalized = raw
+          .map((s) => normalizeSystemKeyFromApi(String(s)))
+          .filter((s): s is SystemKey => s !== null);
+        return normalized.length > 0 ? Array.from(new Set(normalized)) : DASHBOARD_SYSTEMS;
       };
 
       let lastPayload: AdminUsersApiResponse | null = null;
@@ -236,7 +383,7 @@ function AdminUsersContent() {
         throw new Error("Não foi possível consultar a lista de usuários no backend.");
       }
 
-      setUsers(resolvedUsers);
+      setUsers(resolvedUsers.map(normalizeAdminUserFromApi));
       const mergedSystems = Array.from(new Set<SystemKey>([...DASHBOARD_SYSTEMS, ...resolvedSystems]));
       setSystems(mergedSystems);
       setBackendSystems(resolvedSystems);
@@ -262,9 +409,11 @@ function AdminUsersContent() {
   };
 
   const openEdit = (u: AdminUser) => {
-    const initialPermissions: Partial<Record<SystemKey, PermissionLevel>> = {};
-    for (const systemKey of u.systems) {
-      initialPermissions[systemKey] = u.systemPermissions?.[systemKey] || "editor";
+    const systemsAssignable = u.systems.filter((k) => !isHubAlwaysVisibleSystem(k));
+    const initialPermissions: Partial<Record<SystemKey, SystemScopePermission>> = {};
+    for (const systemKey of systemsAssignable) {
+      initialPermissions[systemKey] =
+        u.systemPermissions?.[systemKey] || "editor";
     }
     setEditing(u);
     setForm({
@@ -273,7 +422,7 @@ function AdminUsersContent() {
       password: "",
       role: u.role,
       isActive: u.isActive,
-      systems: [...u.systems],
+      systems: [...systemsAssignable],
       systemPermissions: initialPermissions,
     });
     setModalOpen(true);
@@ -314,40 +463,54 @@ function AdminUsersContent() {
     if (!canSubmit || !token) return;
     setSubmitting(true);
     try {
-      const supportedSystems = backendSystems.length > 0 ? backendSystems : DASHBOARD_SYSTEMS;
-      const systemsToSave = form.systems.filter((key) => supportedSystems.includes(key));
+      /** União hub + API: inclui módulos declarados no back além da lista fixa do hub. */
+      const supportedSystems = Array.from(
+        new Set<SystemKey>([...DASHBOARD_SYSTEMS, ...backendSystems])
+      );
+      const systemsToSave = form.systems
+        .filter((key) => supportedSystems.includes(key))
+        .filter((key) => !isHubAlwaysVisibleSystem(key));
       if (systemsToSave.length !== form.systems.length) {
         toast.warning("Alguns sistemas ainda não são aceitos pelo backend e foram ignorados.");
       }
-      const systemsPayload = systemsToSave.map((key) => ({
-        key,
-        level: form.systemPermissions[key] || "editor",
-      }));
+      const systemPermissionsPayload: Record<string, SystemScopePermission> = {};
+      for (const key of systemsToSave) {
+        systemPermissionsPayload[key] = form.systemPermissions[key] || "editor";
+      }
+
+      const baseEditBody: Record<string, unknown> = {
+        fullName: form.fullName.trim(),
+        role: form.role,
+        isActive: form.isActive,
+        resetPasswordTo: form.password.trim() || undefined,
+      };
+      const baseCreateBody: Record<string, unknown> = {
+        email: form.email.trim().toLowerCase(),
+        password: form.password.trim(),
+        fullName: form.fullName.trim(),
+        role: form.role,
+        isActive: form.isActive,
+      };
 
       if (editing) {
-        await apiFetch(`/admin/users/${encodeURIComponent(editing.id)}`, {
-          method: "PUT",
-          body: JSON.stringify({
-            fullName: form.fullName.trim(),
-            role: form.role,
-            isActive: form.isActive,
-            systems: systemsPayload,
-            resetPasswordTo: form.password.trim() || undefined,
-          }),
-        });
+        await saveAdminUserPayloadVariants(
+          apiFetch,
+          `/admin/users/${encodeURIComponent(editing.id)}`,
+          "PUT",
+          baseEditBody,
+          systemsToSave,
+          systemPermissionsPayload
+        );
         toast.success("Usuário atualizado");
       } else {
-        await apiFetch("/admin/users", {
-          method: "POST",
-          body: JSON.stringify({
-            email: form.email.trim().toLowerCase(),
-            password: form.password.trim(),
-            fullName: form.fullName.trim(),
-            role: form.role,
-            isActive: form.isActive,
-            systems: systemsPayload,
-          }),
-        });
+        await saveAdminUserPayloadVariants(
+          apiFetch,
+          "/admin/users",
+          "POST",
+          baseCreateBody,
+          systemsToSave,
+          systemPermissionsPayload
+        );
         toast.success("Usuário criado");
       }
       setModalOpen(false);
@@ -432,15 +595,18 @@ function AdminUsersContent() {
                     </Badge>
                   </div>
                   <div className="col-span-3 flex flex-wrap gap-1">
-                    {u.systems.length > 0 ? (
-                      u.systems.map((s) => (
-                        <Badge key={s} variant="outline">
-                          {SYSTEM_LABELS[s] || s}
-                        </Badge>
-                      ))
-                    ) : (
-                      <span className="text-xs text-muted-foreground">Sem acesso</span>
-                    )}
+                    {(() => {
+                      const rowSystems = u.systems.filter((s) => !isHubAlwaysVisibleSystem(s));
+                      return rowSystems.length > 0 ? (
+                        rowSystems.map((s) => (
+                          <Badge key={s} variant="outline">
+                            {SYSTEM_LABELS[s] || s}
+                          </Badge>
+                        ))
+                      ) : (
+                        <span className="text-xs text-muted-foreground">Sem acesso</span>
+                      );
+                    })()}
                   </div>
                   <div className="col-span-1 flex justify-end gap-1">
                     <Button size="sm" variant="outline" onClick={() => openEdit(u)}>
@@ -461,6 +627,10 @@ function AdminUsersContent() {
         <DialogContent className="max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{editing ? "Editar usuário" : "Novo usuário"}</DialogTitle>
+            <DialogDescription>
+              Defina perfil, status e quais sistemas este usuário pode acessar. A Consulta Simples
+              Nacional fica disponível para todos no hub e não é configurada aqui.
+            </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-3">
@@ -525,7 +695,7 @@ function AdminUsersContent() {
             <div className="space-y-2">
               <label className="text-sm font-medium">Sistemas liberados</label>
               <div className="space-y-2">
-                {systems.map((s) => (
+                {systemsInAuthModal.map((s) => (
                   <div key={s} className="grid grid-cols-2 items-center gap-2">
                     <span className="text-xs text-muted-foreground">{SYSTEM_LABELS[s] || s}</span>
                     <select
@@ -536,7 +706,6 @@ function AdminUsersContent() {
                       <option value="inactive">Inativo</option>
                       <option value="viewer">Visualizador</option>
                       <option value="editor">Editor</option>
-                      <option value="admin">Administrador</option>
                     </select>
                   </div>
                 ))}

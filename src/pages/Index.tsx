@@ -36,6 +36,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import loginBg from "@/assets/login-bg.jpg";
+import { isHubAlwaysVisibleSystem } from "@/lib/hub-always-visible-systems";
 
 type SystemKey =
   | "alvaras"
@@ -63,6 +64,8 @@ function normalizeSystemKey(value: string): SystemKey | null {
     situacao_fiscal: "fiscal",
     simples_nacional: "simples_nacional",
     consulta_simples_nacional: "simples_nacional",
+    simples: "simples_nacional",
+    consulta_simples: "simples_nacional",
   };
   return alias[key] || null;
 }
@@ -175,10 +178,9 @@ function DashboardContent() {
       .map((s) => normalizeSystemKey(String(s)))
       .filter((s): s is SystemKey => s !== null)
   );
-  const visibleApps =
-    user?.role === "admin"
-      ? apps
-      : apps.filter((app) => allowedSystems.has(app.systemKey));
+  const visibleApps = apps.filter(
+    (app) => allowedSystems.has(app.systemKey) || isHubAlwaysVisibleSystem(app.systemKey)
+  );
 
   useEffect(() => {
     const timer = setTimeout(() => setLoading(false), 1200);
