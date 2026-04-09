@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSidebar } from "@/contexts/SidebarContext";
 import { buildSsoUrl } from "@/lib/sso";
@@ -23,34 +23,64 @@ import logo from "@/assets/logo-o2con.png";
 import o2conIcon from "@/assets/o2con-icon.png";
 import { cn } from "@/lib/utils";
 
+type SystemKey =
+  | "alvaras"
+  | "certificados"
+  | "cnds"
+  | "processos"
+  | "cadastro_empresas"
+  | "procuracoes"
+  | "fiscal"
+  | "simples_nacional";
+
+function normalizeSystemKey(value: string): SystemKey | null {
+  const key = value.trim().toLowerCase().replace(/\s+/g, "_").replace(/-/g, "_");
+  const alias: Record<string, SystemKey> = {
+    alvaras: "alvaras",
+    certificados: "certificados",
+    cnds: "cnds",
+    cnd: "cnds",
+    processos: "processos",
+    gestao_de_processos: "processos",
+    cadastro_empresas: "cadastro_empresas",
+    cadastro_de_empresas: "cadastro_empresas",
+    procuracoes: "procuracoes",
+    fiscal: "fiscal",
+    situacao_fiscal: "fiscal",
+    simples_nacional: "simples_nacional",
+    consulta_simples_nacional: "simples_nacional",
+  };
+  return alias[key] || null;
+}
+
 interface NavItem {
   icon: React.ElementType;
   label: string;
   /** Abre em nova aba (mesmo destino dos cards em Sistemas) */
   externalUrl?: string;
   sso?: boolean;
+  internalPath?: string;
+  systemKey?: SystemKey;
 }
 
 const mainNav: NavItem[] = [
-  { icon: LayoutGrid, label: "Início" },
-  { icon: ScrollText, label: "Alvarás", externalUrl: "https://o2controle-gestao-alvaras.vercel.app/", sso: true },
-  { icon: ShieldCheck, label: "Certificado Digital", externalUrl: "https://certificados-o2con.vercel.app/", sso: true },
-  { icon: FileText, label: "CND's" },
-  { icon: GitBranch, label: "Gestão de Processos" },
-  { icon: Building2, label: "Cadastro de Empresas" },
-  { icon: FileSignature, label: "Procurações" },
-  { icon: AlertTriangle, label: "Situação Fiscal" },
-  { icon: FileSearch, label: "Consulta Simples Nacional", externalUrl: "https://simples-status-checker.vercel.app/", sso: true },
+  { icon: LayoutGrid, label: "Início", internalPath: "/dashboard" },
+  { icon: ScrollText, label: "Alvarás", systemKey: "alvaras", externalUrl: "https://o2controle-gestao-alvaras.vercel.app/", sso: true },
+  { icon: ShieldCheck, label: "Certificado Digital", systemKey: "certificados", externalUrl: "https://certificados-o2con.vercel.app/", sso: true },
+  { icon: FileText, label: "CND's", systemKey: "cnds" },
+  { icon: GitBranch, label: "Gestão de Processos", systemKey: "processos" },
+  { icon: Building2, label: "Cadastro de Empresas", systemKey: "cadastro_empresas" },
+  { icon: FileSignature, label: "Procurações", systemKey: "procuracoes" },
+  { icon: AlertTriangle, label: "Situação Fiscal", systemKey: "fiscal" },
+  { icon: FileSearch, label: "Consulta Simples Nacional", systemKey: "simples_nacional", externalUrl: "https://simples-status-checker.vercel.app/", sso: true },
 ];
 
-const bottomNav: NavItem[] = [
-  { icon: Settings, label: "Configurações" },
-  { icon: HelpCircle, label: "Ajuda" },
-];
+const bottomNav: NavItem[] = [{ icon: HelpCircle, label: "Ajuda" }];
 
 export default function Sidebar() {
+  const location = useLocation();
   const navigate = useNavigate();
-  const { logout, getToken, isAuthenticated } = useAuth();
+  const { logout, getToken, isAuthenticated, user } = useAuth();
   const { collapsed, setCollapsed, isDesktop, mobileMenuOpen, setMobileMenuOpen } = useSidebar();
   const [activeIndex, setActiveIndex] = useState(0);
 
@@ -66,6 +96,19 @@ export default function Sidebar() {
     const href = token ? buildSsoUrl(url, token) : url;
     window.open(href, "_blank", "noopener,noreferrer");
   };
+  const allowedSystems = new Set(
+    (user?.systems || [])
+      .map((s) => normalizeSystemKey(String(s)))
+      .filter((s): s is SystemKey => s !== null)
+  );
+
+  const mainNavItems: NavItem[] =
+    user?.role === "admin"
+      ? [...mainNav, { icon: Settings, label: "Administração", internalPath: "/admin/users" }]
+      : mainNav.filter((item) => {
+          if (!item.systemKey) return true;
+          return allowedSystems.has(item.systemKey);
+        });
 
   return (
     <>
@@ -103,9 +146,11 @@ export default function Sidebar() {
 
       {/* Main Nav */}
       <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-4">
-        {mainNav.map((item, i) => {
+        {mainNavItems.map((item, i) => {
           const Icon = item.icon;
-          const isActive = i === activeIndex;
+          const isActive = item.internalPath
+            ? location.pathname === item.internalPath
+            : i === activeIndex;
           return (
             <button
               key={item.label}
@@ -113,6 +158,11 @@ export default function Sidebar() {
               onClick={() => {
                 if (item.externalUrl) {
                   openExternalSystem(item.externalUrl, item.sso);
+                  closeMobileIfNeeded();
+                  return;
+                }
+                if (item.internalPath) {
+                  navigate(item.internalPath);
                   closeMobileIfNeeded();
                   return;
                 }
@@ -135,8 +185,10 @@ export default function Sidebar() {
 
       {/* Bottom */}
       <div className="border-t border-sidebar-border px-5 py-3">
-        {!collapsed && (
-          <p className="mb-2 text-xs font-medium text-sidebar-muted">Administrador</p>
+            {!collapsed && (
+          <p className="mb-2 truncate text-xs font-medium text-sidebar-muted">
+            {user?.name || user?.email || "Usuário"}
+          </p>
         )}
         <div className="space-y-1">
           {bottomNav.map((item) => {

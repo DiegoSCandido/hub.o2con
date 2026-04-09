@@ -1,30 +1,29 @@
 /**
  * Utilitário SSO - Single Sign-On entre Hub e aplicativos internos
  *
- * O token é passado via hash (#) para não ser enviado ao servidor em requisições.
+ * O token é passado via query string para facilitar integração entre apps.
  *
  * INTEGRAÇÃO NOS APPS ADICIONAIS:
- * Ao carregar, o app deve verificar se há token no hash:
+ * Ao carregar, o app deve verificar se há token na URL:
  *
- *   const hash = window.location.hash;
- *   const match = hash.match(/sso_token=([^&]+)/);
- *   if (match) {
- *     const token = decodeURIComponent(match[1]);
+ *   const params = new URLSearchParams(window.location.search);
+ *   const token = params.get("sso_token");
+ *   if (token) {
  *     // Validar token no backend e fazer login automático
  *     // localStorage.setItem('o2con_hub_token', token);
- *     // Limpar hash: history.replaceState(null, '', location.pathname);
+ *     // Limpar URL: history.replaceState(null, '', location.pathname);
  *   }
  *
  * O backend deve validar o mesmo token JWT usado no Hub.
  */
 
-export const SSO_HASH_PARAM = "sso_token";
+export const SSO_PARAM = "sso_token";
 
 /**
- * Monta a URL do app com o token SSO no hash para login automático
+ * Monta a URL do app com o token SSO para login automático
  */
 export function buildSsoUrl(baseUrl: string, token: string): string {
   const url = new URL(baseUrl);
-  url.hash = `${SSO_HASH_PARAM}=${encodeURIComponent(token)}`;
+  url.searchParams.set(SSO_PARAM, token);
   return url.toString();
 }

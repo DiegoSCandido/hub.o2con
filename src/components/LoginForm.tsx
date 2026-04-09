@@ -17,6 +17,46 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
+function inferUserRole(apiUser: Record<string, unknown>): "admin" | "user" {
+  const isAdminBoolean =
+    apiUser.isAdmin === true ||
+    apiUser.admin === true ||
+    apiUser.is_admin === true;
+  if (isAdminBoolean) return "admin";
+
+  const directCandidates = [
+    apiUser.role,
+    apiUser.userRole,
+    apiUser.profile,
+    apiUser.perfil,
+    apiUser.tipo,
+    apiUser.type,
+  ];
+
+  for (const candidate of directCandidates) {
+    const normalized = String(candidate || "")
+      .trim()
+      .toLowerCase();
+    if (normalized === "admin" || normalized === "administrator" || normalized === "adm") {
+      return "admin";
+    }
+  }
+
+  const listCandidates = [apiUser.roles, apiUser.permissions, apiUser.perfis, apiUser.scopes];
+  for (const candidate of listCandidates) {
+    if (!Array.isArray(candidate)) continue;
+    const hasAdmin = candidate.some((entry) => {
+      const normalized = String(entry || "")
+        .trim()
+        .toLowerCase();
+      return normalized === "admin" || normalized === "administrator" || normalized === "adm";
+    });
+    if (hasAdmin) return "admin";
+  }
+
+  return "user";
+}
+
 const LoginForm = () => {
   const navigate = useNavigate();
   const { login, getToken } = useAuth();
@@ -73,7 +113,7 @@ const LoginForm = () => {
       }
 
       const token = data.token;
-      const apiUser = data.user;
+      const apiUser = (data.user || {}) as Record<string, unknown>;
 
       if (!token || !apiUser) {
         toast.error("Resposta inválida do servidor.");
@@ -81,9 +121,15 @@ const LoginForm = () => {
       }
 
       const user = {
-        id: String(apiUser.id),
-        email: apiUser.email,
-        name: apiUser.fullName || apiUser.email,
+        id: String(apiUser.id ?? ""),
+        email: String(apiUser.email ?? ""),
+        name: String(apiUser.fullName || apiUser.name || apiUser.email || "Usuário"),
+        role: inferUserRole(apiUser),
+        systems: Array.isArray(apiUser.systems) ? (apiUser.systems as string[]) : [],
+        systemPermissions:
+          apiUser.systemPermissions && typeof apiUser.systemPermissions === "object"
+            ? (apiUser.systemPermissions as Record<string, "viewer" | "editor" | "admin">)
+            : {},
       };
       login(token, user);
 

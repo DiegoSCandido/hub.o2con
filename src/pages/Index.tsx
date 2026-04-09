@@ -37,15 +37,45 @@ import {
 } from "@/components/ui/dropdown-menu";
 import loginBg from "@/assets/login-bg.jpg";
 
+type SystemKey =
+  | "alvaras"
+  | "certificados"
+  | "cnds"
+  | "processos"
+  | "cadastro_empresas"
+  | "procuracoes"
+  | "fiscal"
+  | "simples_nacional";
+
+function normalizeSystemKey(value: string): SystemKey | null {
+  const key = value.trim().toLowerCase().replace(/\s+/g, "_").replace(/-/g, "_");
+  const alias: Record<string, SystemKey> = {
+    alvaras: "alvaras",
+    certificados: "certificados",
+    cnds: "cnds",
+    cnd: "cnds",
+    processos: "processos",
+    gestao_de_processos: "processos",
+    cadastro_empresas: "cadastro_empresas",
+    cadastro_de_empresas: "cadastro_empresas",
+    procuracoes: "procuracoes",
+    fiscal: "fiscal",
+    situacao_fiscal: "fiscal",
+    simples_nacional: "simples_nacional",
+    consulta_simples_nacional: "simples_nacional",
+  };
+  return alias[key] || null;
+}
+
 const apps = [
-  { icon: ScrollText, title: "Alvarás", description: "Controle e acompanhamento de alvarás e licenças de funcionamento.", status: "online" as const, url: "https://o2controle-gestao-alvaras.vercel.app/", sso: true },
-  { icon: ShieldCheck, title: "Certificado Digital", description: "Gestão de certificados digitais, validades e renovações.", status: "online" as const, url: "https://certificados-o2con.vercel.app/", sso: true },
-  { icon: FileText, title: "CND's", description: "Emissão e monitoramento de Certidões Negativas de Débito.", status: "offline" as const },
-  { icon: GitBranch, title: "Gestão de Processos", description: "Acompanhamento de processos administrativos e fluxos de trabalho.", status: "offline" as const },
-  { icon: Building2, title: "Cadastro de Empresas", description: "Registro e manutenção de dados cadastrais de empresas.", status: "offline" as const },
-  { icon: FileSignature, title: "Procurações", description: "Controle de procurações, vencimentos e outorgantes.", status: "offline" as const },
-  { icon: AlertTriangle, title: "Situação Fiscal", description: "Consulta e monitoramento da situação fiscal das empresas.", status: "offline" as const },
-  { icon: FileSearch, title: "Consulta Simples Nacional", description: "Consulta de enquadramento e situação no regime do Simples Nacional.", status: "online" as const, url: "https://simples-status-checker.vercel.app/", sso: true },
+  { icon: ScrollText, title: "Alvarás", systemKey: "alvaras" as SystemKey, description: "Controle e acompanhamento de alvarás e licenças de funcionamento.", status: "online" as const, url: "https://o2controle-gestao-alvaras.vercel.app/", sso: true },
+  { icon: ShieldCheck, title: "Certificado Digital", systemKey: "certificados" as SystemKey, description: "Gestão de certificados digitais, validades e renovações.", status: "online" as const, url: "https://certificados-o2con.vercel.app/", sso: true },
+  { icon: FileText, title: "CND's", systemKey: "cnds" as SystemKey, description: "Emissão e monitoramento de Certidões Negativas de Débito.", status: "offline" as const },
+  { icon: GitBranch, title: "Gestão de Processos", systemKey: "processos" as SystemKey, description: "Acompanhamento de processos administrativos e fluxos de trabalho.", status: "offline" as const },
+  { icon: Building2, title: "Cadastro de Empresas", systemKey: "cadastro_empresas" as SystemKey, description: "Registro e manutenção de dados cadastrais de empresas.", status: "offline" as const },
+  { icon: FileSignature, title: "Procurações", systemKey: "procuracoes" as SystemKey, description: "Controle de procurações, vencimentos e outorgantes.", status: "offline" as const },
+  { icon: AlertTriangle, title: "Situação Fiscal", systemKey: "fiscal" as SystemKey, description: "Consulta e monitoramento da situação fiscal das empresas.", status: "offline" as const },
+  { icon: FileSearch, title: "Consulta Simples Nacional", systemKey: "simples_nacional" as SystemKey, description: "Consulta de enquadramento e situação no regime do Simples Nacional.", status: "online" as const, url: "https://simples-status-checker.vercel.app/", sso: true },
 ];
 
 const externalLinks = [
@@ -140,6 +170,15 @@ function DashboardContent() {
     ? notifications.filter((n) => n.userId === user.id)
     : [];
   const unreadCount = userNotifications.filter((n) => !n.read).length;
+  const allowedSystems = new Set(
+    (user?.systems || [])
+      .map((s) => normalizeSystemKey(String(s)))
+      .filter((s): s is SystemKey => s !== null)
+  );
+  const visibleApps =
+    user?.role === "admin"
+      ? apps
+      : apps.filter((app) => allowedSystems.has(app.systemKey));
 
   useEffect(() => {
     const timer = setTimeout(() => setLoading(false), 1200);
@@ -147,11 +186,11 @@ function DashboardContent() {
   }, []);
 
   useEffect(() => {
-    if (!loading && visibleCount < apps.length) {
+    if (!loading && visibleCount < visibleApps.length) {
       const timer = setTimeout(() => setVisibleCount((c) => c + 1), 100);
       return () => clearTimeout(timer);
     }
-  }, [loading, visibleCount]);
+  }, [loading, visibleCount, visibleApps.length]);
 
   return (
     <div className="min-h-screen min-w-0 bg-background">
@@ -289,22 +328,30 @@ function DashboardContent() {
                 <div className="mb-6">
                   <h2 className="font-display text-xl font-bold text-foreground">Sistemas</h2>
                   <p className="mt-1 text-sm text-muted-foreground">
-                    {apps.length} sistemas disponíveis
+                    {visibleApps.length} sistemas disponíveis
                   </p>
                 </div>
 
                 <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                  {apps.map((app, i) => (
+                  {visibleApps.map((app, i) => {
+                    const { systemKey, ...appCardProps } = app;
+                    return (
                     <motion.div
                       key={app.title}
                       initial={{ opacity: 0 }}
                       animate={i < visibleCount ? { opacity: 1 } : { opacity: 0 }}
                       transition={{ duration: 0.05 }}
                     >
-                      <AppCard {...app} />
+                      <AppCard {...appCardProps} />
                     </motion.div>
-                  ))}
+                    );
+                  })}
                 </div>
+                {visibleApps.length === 0 && (
+                  <p className="mt-4 text-sm text-muted-foreground">
+                    Nenhum sistema liberado para seu usuário.
+                  </p>
+                )}
 
                 {/* Links externos */}
                 <div className="mt-12 mb-6">
