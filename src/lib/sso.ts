@@ -3,10 +3,9 @@
  *
  * INTEGRAÇÃO NOS APPS ADICIONAIS:
  * - **History API (padrão):** ler `sso_token` em `window.location.search`.
- * - **Hash Router:** alguns apps (ex.: Certificados O2con) leem `sso_token` em
- *   `window.location.hash` (ex.: `/#/?sso_token=...`). O hub envia nesse formato
- *   automaticamente para hosts configurados em `HASH_MODE_HOST_SNIPPETS` ou
- *   `VITE_SSO_HASH_MODE_HOSTS` (lista separada por vírgulas).
+ * - **Hash Router:** Alvarás, Certificados e outros apps O2con leem `sso_token` em
+ *   `window.location.hash` (regex no hash, ex.: `/#/?sso_token=...`). O hub envia
+ *   nesse formato para hosts em `HASH_MODE_HOST_SNIPPETS` ou `VITE_SSO_HASH_MODE_HOSTS`.
  *
  *   const params = new URLSearchParams(window.location.search);
  *   // ou, em apps hash: parse da parte após # (ex. react-router HashRouter)
@@ -15,7 +14,11 @@
 export const SSO_PARAM = "sso_token";
 
 /** Trechos de hostname para colocar o token no fragment `#/?sso_token=` em vez de `?sso_token=`. */
-const HASH_MODE_HOST_SNIPPETS = ["certificados-o2con"];
+const HASH_MODE_HOST_SNIPPETS = [
+  "certificados-o2con",
+  "o2controle-gestao-alvaras",
+  "gestao-alvaras",
+];
 
 function shouldPutSsoTokenInHash(hostname: string): boolean {
   const h = hostname.toLowerCase();
