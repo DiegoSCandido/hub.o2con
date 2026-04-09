@@ -17,6 +17,7 @@ import {
 
 type UserRole = "admin" | "user";
 type PermissionLevel = "viewer" | "editor" | "admin";
+type SystemAccessLevel = PermissionLevel | "inactive";
 type SystemKey =
   | "alvaras"
   | "certificados"
@@ -278,34 +279,35 @@ function AdminUsersContent() {
     setModalOpen(true);
   };
 
-  const toggleSystem = (key: SystemKey) => {
+  const getSystemAccessLevel = (key: SystemKey): SystemAccessLevel => {
+    if (!form.systems.includes(key)) return "inactive";
+    return form.systemPermissions[key] || "editor";
+  };
+
+  const setSystemAccessLevel = (key: SystemKey, level: SystemAccessLevel) => {
     setForm((prev) => {
-      const exists = prev.systems.includes(key);
-      const nextSystems = exists
-        ? prev.systems.filter((x) => x !== key)
-        : [...prev.systems, key];
+      const hasSystem = prev.systems.includes(key);
+      const nextSystems = hasSystem ? [...prev.systems] : [...prev.systems, key];
       const nextPermissions = { ...prev.systemPermissions };
-      if (exists) {
+
+      if (level === "inactive") {
         delete nextPermissions[key];
-      } else {
-        nextPermissions[key] = nextPermissions[key] || "editor";
+        return {
+          ...prev,
+          systems: prev.systems.filter((x) => x !== key),
+          systemPermissions: nextPermissions,
+        };
       }
+
+      if (!hasSystem) nextSystems.push(key);
+      nextPermissions[key] = level;
+
       return {
         ...prev,
-        systems: nextSystems,
+        systems: Array.from(new Set(nextSystems)),
         systemPermissions: nextPermissions,
       };
     });
-  };
-
-  const setSystemPermission = (key: SystemKey, level: PermissionLevel) => {
-    setForm((prev) => ({
-      ...prev,
-      systemPermissions: {
-        ...prev.systemPermissions,
-        [key]: level,
-      },
-    }));
   };
 
   const handleSave = async () => {
@@ -433,7 +435,7 @@ function AdminUsersContent() {
                     {u.systems.length > 0 ? (
                       u.systems.map((s) => (
                         <Badge key={s} variant="outline">
-                          {(SYSTEM_LABELS[s] || s)} - {PERMISSION_LABELS[u.systemPermissions?.[s] || "editor"]}
+                          {SYSTEM_LABELS[s] || s}
                         </Badge>
                       ))
                     ) : (
@@ -522,37 +524,23 @@ function AdminUsersContent() {
 
             <div className="space-y-2">
               <label className="text-sm font-medium">Sistemas liberados</label>
-              <div className="flex flex-wrap gap-2">
+              <div className="space-y-2">
                 {systems.map((s) => (
-                  <Button
-                    key={s}
-                    type="button"
-                    size="sm"
-                    variant={form.systems.includes(s) ? "default" : "outline"}
-                    onClick={() => toggleSystem(s)}
-                  >
-                    {SYSTEM_LABELS[s] || s}
-                  </Button>
+                  <div key={s} className="grid grid-cols-2 items-center gap-2">
+                    <span className="text-xs text-muted-foreground">{SYSTEM_LABELS[s] || s}</span>
+                    <select
+                      className="h-9 w-full rounded-md border bg-background px-2 text-xs"
+                      value={getSystemAccessLevel(s)}
+                      onChange={(e) => setSystemAccessLevel(s, e.target.value as SystemAccessLevel)}
+                    >
+                      <option value="inactive">Inativo</option>
+                      <option value="viewer">Visualizador</option>
+                      <option value="editor">Editor</option>
+                      <option value="admin">Administrador</option>
+                    </select>
+                  </div>
                 ))}
               </div>
-              {form.systems.length > 0 && (
-                <div className="space-y-2 pt-2">
-                  {form.systems.map((s) => (
-                    <div key={s} className="grid grid-cols-2 items-center gap-2">
-                      <span className="text-xs text-muted-foreground">{SYSTEM_LABELS[s] || s}</span>
-                      <select
-                        className="h-9 w-full rounded-md border bg-background px-2 text-xs"
-                        value={form.systemPermissions[s] || "editor"}
-                        onChange={(e) => setSystemPermission(s, e.target.value as PermissionLevel)}
-                      >
-                        <option value="viewer">Visualizador</option>
-                        <option value="editor">Editor</option>
-                        <option value="admin">Administrador</option>
-                      </select>
-                    </div>
-                  ))}
-                </div>
-              )}
             </div>
           </div>
 
