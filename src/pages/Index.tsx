@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   FileText,
-  ShieldCheck,
+  KeyRound,
   ScrollText,
   GitBranch,
   Building2,
@@ -72,7 +72,7 @@ function normalizeSystemKey(value: string): SystemKey | null {
 
 const apps = [
   { icon: ScrollText, title: "Alvarás", systemKey: "alvaras" as SystemKey, description: "Controle e acompanhamento de alvarás e licenças de funcionamento.", status: "online" as const, url: "https://o2controle-gestao-alvaras.vercel.app/", sso: true },
-  { icon: ShieldCheck, title: "Certificado Digital", systemKey: "certificados" as SystemKey, description: "Gestão de certificados digitais, validades e renovações.", status: "online" as const, url: "https://certificados-o2con.vercel.app/", sso: true },
+  { icon: KeyRound, title: "Certificado Digital", systemKey: "certificados" as SystemKey, description: "Gestão de certificados digitais, validades e renovações.", status: "online" as const, url: "https://certificados-o2con.vercel.app/", sso: true },
   { icon: FileText, title: "CND's", systemKey: "cnds" as SystemKey, description: "Emissão e monitoramento de Certidões Negativas de Débito.", status: "offline" as const },
   { icon: GitBranch, title: "Gestão de Processos", systemKey: "processos" as SystemKey, description: "Acompanhamento de processos administrativos e fluxos de trabalho.", status: "offline" as const },
   { icon: Building2, title: "Cadastro de Empresas", systemKey: "cadastro_empresas" as SystemKey, description: "Registro e manutenção de dados cadastrais de empresas.", status: "offline" as const },

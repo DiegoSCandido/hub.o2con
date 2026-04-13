@@ -14,7 +14,7 @@ interface AppCardProps {
 }
 
 export default function AppCard({ icon: Icon, title, description, status = "online", url, sso = false }: AppCardProps) {
-  const { getToken, isAuthenticated } = useAuth();
+  const { getToken } = useAuth();
   const statusLabel = {
     online: "Ativo",
     offline: "Inativo",
@@ -61,8 +61,11 @@ export default function AppCard({ icon: Icon, title, description, status = "onli
     // SSO: passa token para login automático nos apps internos
     // Usa localStorage como fallback (evita timing do estado React)
     const tokenFromState = getToken();
-    const tokenFromStorage = typeof window !== "undefined" ? localStorage.getItem("o2con_hub_token") : null;
-    const token = sso && isAuthenticated ? (tokenFromState || tokenFromStorage) : null;
+    const tokenFromStorage =
+      typeof window !== "undefined"
+        ? localStorage.getItem("o2con_hub_token") || sessionStorage.getItem("o2con_hub_token")
+        : null;
+    const token = sso ? tokenFromState || tokenFromStorage : null;
     const href = token ? buildSsoUrl(url, token) : url;
 
     const handleClick = (e: React.MouseEvent) => {

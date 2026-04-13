@@ -6,7 +6,7 @@ import { buildSsoUrl } from "@/lib/sso";
 import {
   LayoutGrid,
   ScrollText,
-  ShieldCheck,
+  KeyRound,
   FileText,
   GitBranch,
   Building2,
@@ -69,7 +69,7 @@ interface NavItem {
 const mainNav: NavItem[] = [
   { icon: LayoutGrid, label: "Início", internalPath: "/dashboard" },
   { icon: ScrollText, label: "Alvarás", systemKey: "alvaras", externalUrl: "https://o2controle-gestao-alvaras.vercel.app/", sso: true },
-  { icon: ShieldCheck, label: "Certificado Digital", systemKey: "certificados", externalUrl: "https://certificados-o2con.vercel.app/", sso: true },
+  { icon: KeyRound, label: "Certificado Digital", systemKey: "certificados", externalUrl: "https://certificados-o2con.vercel.app/", sso: true },
   { icon: FileText, label: "CND's", systemKey: "cnds" },
   { icon: GitBranch, label: "Gestão de Processos", systemKey: "processos" },
   { icon: Building2, label: "Cadastro de Empresas", systemKey: "cadastro_empresas" },
@@ -83,7 +83,7 @@ const bottomNav: NavItem[] = [{ icon: HelpCircle, label: "Ajuda" }];
 export default function Sidebar() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { logout, getToken, isAuthenticated, user } = useAuth();
+  const { logout, getToken, user } = useAuth();
   const { collapsed, setCollapsed, isDesktop, mobileMenuOpen, setMobileMenuOpen } = useSidebar();
   const [activeIndex, setActiveIndex] = useState(0);
 
@@ -94,8 +94,10 @@ export default function Sidebar() {
   const openExternalSystem = (url: string, sso?: boolean) => {
     const tokenFromState = getToken();
     const tokenFromStorage =
-      typeof window !== "undefined" ? localStorage.getItem("o2con_hub_token") : null;
-    const token = sso && isAuthenticated ? tokenFromState || tokenFromStorage : null;
+      typeof window !== "undefined"
+        ? localStorage.getItem("o2con_hub_token") || sessionStorage.getItem("o2con_hub_token")
+        : null;
+    const token = sso ? tokenFromState || tokenFromStorage : null;
     const href = token ? buildSsoUrl(url, token) : url;
     window.open(href, "_blank", "noopener,noreferrer");
   };
