@@ -78,15 +78,8 @@ function inferRoleFromClaims(claims: Record<string, unknown> | null): "admin" | 
 function normalizeUser(user: AuthUser, token?: string): AuthUser {
   const claims = token ? decodeJwtPayload(token) : null;
   const roleFromClaims = inferRoleFromClaims(claims);
-  const normalizedEmail = String(user.email || "")
-    .trim()
-    .toLowerCase();
-  const roleFromEmail =
-    normalizedEmail === "admin@o2controle.com" || normalizedEmail.startsWith("admin@")
-      ? "admin"
-      : "user";
   const finalRole =
-    roleFromClaims === "admin" || normalizeRole(user.role) === "admin" || roleFromEmail === "admin"
+    roleFromClaims === "admin" || normalizeRole(user.role) === "admin"
       ? "admin"
       : "user";
 
@@ -108,19 +101,40 @@ interface AuthState {
 }
 
 interface AuthContextValue extends AuthState {
-  login: (token: string, user: AuthUser) => void;
+  login: (token: string, user: AuthUser, options?: { rememberMe?: boolean }) => void;
   logout: () => void;
   getToken: () => string | null;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
+function readStoredAuth(): { token: string | null; userJson: string | null } {
+  // Prefer persistent storage, but fall back to session.
+  const token = localStorage.getItem(TOKEN_STORAGE_KEY) || sessionStorage.getItem(TOKEN_STORAGE_KEY);
+  const userJson = localStorage.getItem(AUTH_STORAGE_KEY) || sessionStorage.getItem(AUTH_STORAGE_KEY);
+  return { token, userJson };
+}
+
+function clearStoredAuth(): void {
+  localStorage.removeItem(TOKEN_STORAGE_KEY);
+  localStorage.removeItem(AUTH_STORAGE_KEY);
+  sessionStorage.removeItem(TOKEN_STORAGE_KEY);
+  sessionStorage.removeItem(AUTH_STORAGE_KEY);
+}
+
+function writeStoredAuth(token: string, userJson: string, rememberMe: boolean): void {
+  // Store in exactly one place to avoid "stale token" confusion.
+  clearStoredAuth();
+  const storage = rememberMe ? localStorage : sessionStorage;
+  storage.setItem(TOKEN_STORAGE_KEY, token);
+  storage.setItem(AUTH_STORAGE_KEY, userJson);
+}
+
 function loadStoredAuth(): AuthState {
   try {
-    const stored = localStorage.getItem(AUTH_STORAGE_KEY);
-    const token = localStorage.getItem(TOKEN_STORAGE_KEY);
-    if (stored && token) {
-      const user = normalizeUser(JSON.parse(stored) as AuthUser, token);
+    const { token, userJson } = readStoredAuth();
+    if (userJson && token) {
+      const user = normalizeUser(JSON.parse(userJson) as AuthUser, token);
       return { token, user, isAuthenticated: true };
     }
   } catch {
@@ -133,29 +147,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<AuthState>(loadStoredAuth);
 
   useEffect(() => {
-    const stored = localStorage.getItem(AUTH_STORAGE_KEY);
-    const token = localStorage.getItem(TOKEN_STORAGE_KEY);
-    if (stored && token) {
-      const parsedUser = normalizeUser(JSON.parse(stored) as AuthUser, token);
+    const { token, userJson } = readStoredAuth();
+    if (userJson && token) {
+      const parsedUser = normalizeUser(JSON.parse(userJson) as AuthUser, token);
       setState({
         token,
         user: parsedUser,
         isAuthenticated: true,
       });
-      localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(parsedUser));
+      // Refresh stored user with normalized values, keeping current persistence choice.
+      const isRemembered = Boolean(localStorage.getItem(TOKEN_STORAGE_KEY));
+      writeStoredAuth(token, JSON.stringify(parsedUser), isRemembered);
     }
   }, []);
 
-  const login = useCallback((token: string, user: AuthUser) => {
+  const login = useCallback((token: string, user: AuthUser, options?: { rememberMe?: boolean }) => {
     const normalizedUser = normalizeUser(user, token);
-    localStorage.setItem(TOKEN_STORAGE_KEY, token);
-    localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(normalizedUser));
+    writeStoredAuth(token, JSON.stringify(normalizedUser), options?.rememberMe === true);
     setState({ token, user: normalizedUser, isAuthenticated: true });
   }, []);
 
   const logout = useCallback(() => {
-    localStorage.removeItem(TOKEN_STORAGE_KEY);
-    localStorage.removeItem(AUTH_STORAGE_KEY);
+    clearStoredAuth();
     setState({ token: null, user: null, isAuthenticated: false });
   }, []);
 

@@ -132,7 +132,7 @@ const LoginForm = () => {
             ? (apiUser.systemPermissions as Record<string, "viewer" | "editor" | "admin">)
             : {},
       };
-      login(token, user);
+      login(token, user, { rememberMe });
 
       if (data.mustChangePassword) {
         setCurrentPassword(password);

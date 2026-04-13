@@ -13,12 +13,38 @@
 
 export const SSO_PARAM = "sso_token";
 
+/**
+ * Só envia token SSO para hosts considerados confiáveis.
+ * Configure via `VITE_SSO_TRUSTED_HOSTS` (lista separada por vírgula; aceita trechos do hostname).
+ *
+ * Importante: enviar JWT em querystring pode vazar via logs/histórico. Para hosts confiáveis, o padrão
+ * é colocar o token no hash (`#/?sso_token=`), que não vai no request HTTP.
+ */
+const TRUSTED_HOST_SNIPPETS = [
+  // Apps internos conhecidos
+  "certificados-o2con",
+  "o2controle-gestao-alvaras",
+  "gestao-alvaras",
+  "simples-status-checker",
+];
+
 /** Trechos de hostname para colocar o token no fragment `#/?sso_token=` em vez de `?sso_token=`. */
 const HASH_MODE_HOST_SNIPPETS = [
   "certificados-o2con",
   "o2controle-gestao-alvaras",
   "gestao-alvaras",
+  "simples-status-checker",
 ];
+
+function isTrustedSsoHost(hostname: string): boolean {
+  const h = hostname.toLowerCase();
+  const fromEnv = (import.meta.env.VITE_SSO_TRUSTED_HOSTS as string | undefined)
+    ?.split(",")
+    .map((s) => s.trim().toLowerCase())
+    .filter(Boolean);
+  const rules = [...(fromEnv ?? []), ...TRUSTED_HOST_SNIPPETS];
+  return rules.some((snippet) => snippet && h.includes(snippet));
+}
 
 function shouldPutSsoTokenInHash(hostname: string): boolean {
   const h = hostname.toLowerCase();
@@ -41,12 +67,18 @@ export function buildSsoUrl(baseUrl: string, token: string): string {
     return baseUrl;
   }
 
+  if (!isTrustedSsoHost(url.hostname)) {
+    // Defensive default: never leak the hub JWT to unknown hosts.
+    return baseUrl;
+  }
+
   if (shouldPutSsoTokenInHash(url.hostname)) {
     url.search = "";
     url.hash = `/?${SSO_PARAM}=${encodeURIComponent(token)}`;
     return url.toString();
   }
 
+  // Legacy behavior for trusted hosts that still rely on History API.
   url.searchParams.set(SSO_PARAM, token);
   return url.toString();
 }
