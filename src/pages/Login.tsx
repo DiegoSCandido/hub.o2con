@@ -54,9 +54,12 @@ const Login = () => {
               />
             </div>
 
-            <h2 className="text-3xl font-display font-bold mb-4">
-              Tudo em um só lugar
+            <h2 className="text-3xl font-display font-bold mb-3">
+              O2Conecta
             </h2>
+            <p className="text-white/90 text-lg font-bold mb-3">
+              Tudo em um só lugar
+            </p>
             <p className="text-white/80 text-lg leading-relaxed">
               Apps internos e externos, links úteis, ferramentas e muito mais.
               Sua intranet contábil completa.
