@@ -99,7 +99,7 @@ const externalLinks: ExternalPlatformDef[] = [
   { title: "Slack", url: import.meta.env.VITE_SLACK_URL || "https://app.slack.com", description: "Comunicação e colaboração em equipe", logoSrc: "/external-logos/slack.png" },
   { title: "ITCNET", url: "https://itcnet.com.br/", description: "Legislação tributária, consultoria eletrônica e conteúdos para clientes", logoSrc: "/external-logos/itcnet.png" },
   { title: "E-Auditoria", url: "https://conta.e-auditoria.com.br/home", description: "Portal da plataforma E-Auditoria", logoSrc: "/external-logos/e-auditoria.png" },
-  { title: "Veri", url: "#", description: "Gestão Fiscal", fallbackIcon: BarChart3 },
+  { title: "Veri", url: "https://jcw.portal-veri.com.br/login", description: "Gestão Fiscal", fallbackIcon: BarChart3 },
   { title: "GOB", url: "https://app.gob.com.br/login", description: "Gestão de Obrigações Acessórias", logoSrc: "/external-logos/gob.ico" },
   { title: "Sittax", url: "https://app.sittax.com.br/login", description: "Apuração Fiscal Automatizada para o Simples Nacional", logoSrc: "/external-logos/sittax.png" },
   { title: "SIEG", url: "https://auth.sieg.com/", description: "Soluções Fiscais Estratégicas", logoSrc: "/external-logos/sieg.png" },
