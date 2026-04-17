@@ -16,9 +16,12 @@ import {
   MessageCircle,
   Slack,
   Menu,
+  BarChart3,
+  type LucideIcon,
 } from "lucide-react";
 import Sidebar from "@/components/Sidebar";
 import AppCard from "@/components/AppCard";
+import { ExternalPlatformCard } from "@/components/ExternalPlatformCard";
 import { useAuth } from "@/contexts/AuthContext";
 import { SidebarProvider, useSidebar } from "@/contexts/SidebarContext";
 import {
@@ -70,6 +73,14 @@ function normalizeSystemKey(value: string): SystemKey | null {
   return alias[key] || null;
 }
 
+type ExternalPlatformDef = {
+  title: string;
+  url: string;
+  description: string;
+  logoSrc?: string;
+  fallbackIcon?: LucideIcon;
+};
+
 const apps = [
   { icon: ScrollText, title: "Alvarás", systemKey: "alvaras" as SystemKey, description: "Controle e acompanhamento de alvarás e licenças de funcionamento.", status: "online" as const, url: "https://o2controle-gestao-alvaras.vercel.app/", sso: true },
   { icon: KeyRound, title: "Certificado Digital", systemKey: "certificados" as SystemKey, description: "Gestão de certificados digitais, validades e renovações.", status: "online" as const, url: "https://certificados-o2con.vercel.app/", sso: true },
@@ -81,15 +92,17 @@ const apps = [
   { icon: FileSearch, title: "Consulta Simples Nacional", systemKey: "simples_nacional" as SystemKey, description: "Consulta de enquadramento e situação no regime do Simples Nacional.", status: "online" as const, url: "https://simples-status-checker.vercel.app/", sso: true },
 ];
 
-const externalLinks = [
-  { title: "Assessórias", url: "https://app.acessorias.com/sysmain.php", description: "Plataforma de assessorias contábeis" },
-  { title: "Domínio Web", url: "https://www.dominioweb.com.br/", description: "Sistema Domínio Thomson Reuters" },
-  { title: "Digisac", url: "https://o2con.digisac.co/", description: "Atendimento multicanal via WhatsApp" },
-  { title: "Slack", url: import.meta.env.VITE_SLACK_URL || "https://app.slack.com", description: "Comunicação e colaboração em equipe" },
-  { title: "Veri", url: "#", description: "Gestão Fiscal" },
-  { title: "GOB", url: "https://app.gob.com.br/login", description: "Gestão de Obrigações Acessórias" },
-  { title: "Sittax", url: "https://app.sittax.com.br/login", description: "Apuração Fiscal Automatizada para o Simples Nacional" },
-  { title: "SIEG", url: "https://auth.sieg.com/", description: "Soluções Fiscais Estratégicas" },
+const externalLinks: ExternalPlatformDef[] = [
+  { title: "Acessorias", url: "https://app.acessorias.com/sysmain.php", description: "Plataforma de assessorias contábeis", logoSrc: "/external-logos/acessorias.png" },
+  { title: "Digisac", url: "https://o2con.digisac.co/", description: "Atendimento multicanal via WhatsApp", logoSrc: "/external-logos/digisac.png" },
+  { title: "Domínio Web", url: "https://www.dominioweb.com.br/", description: "Sistema Domínio Thomson Reuters", logoSrc: "/external-logos/dominioweb.png" },
+  { title: "Slack", url: import.meta.env.VITE_SLACK_URL || "https://app.slack.com", description: "Comunicação e colaboração em equipe", logoSrc: "/external-logos/slack.png" },
+  { title: "ITCNET", url: "https://itcnet.com.br/", description: "Legislação tributária, consultoria eletrônica e conteúdos para clientes", logoSrc: "/external-logos/itcnet.png" },
+  { title: "E-Auditoria", url: "https://conta.e-auditoria.com.br/home", description: "Portal da plataforma E-Auditoria", logoSrc: "/external-logos/e-auditoria.png" },
+  { title: "Veri", url: "#", description: "Gestão Fiscal", fallbackIcon: BarChart3 },
+  { title: "GOB", url: "https://app.gob.com.br/login", description: "Gestão de Obrigações Acessórias", logoSrc: "/external-logos/gob.ico" },
+  { title: "Sittax", url: "https://app.sittax.com.br/login", description: "Apuração Fiscal Automatizada para o Simples Nacional", logoSrc: "/external-logos/sittax.png" },
+  { title: "SIEG", url: "https://auth.sieg.com/", description: "Soluções Fiscais Estratégicas", logoSrc: "/external-logos/sieg.png" },
 ];
 
 const prefeituras = [
@@ -365,19 +378,14 @@ function DashboardContent() {
 
                 <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
                   {externalLinks.map((link) => (
-                    <a
+                    <ExternalPlatformCard
                       key={link.title}
+                      title={link.title}
+                      description={link.description}
                       href={link.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="group flex items-center justify-between rounded-lg border border-border bg-card p-6 transition-colors duration-150 hover:border-primary"
-                    >
-                      <div>
-                        <h3 className="font-display text-base font-semibold text-card-foreground">{link.title}</h3>
-                        <p className="mt-1 text-sm text-muted-foreground">{link.description}</p>
-                      </div>
-                      <ExternalLink className="h-5 w-5 shrink-0 text-muted-foreground transition-colors duration-150 group-hover:text-primary" strokeWidth={1.5} />
-                    </a>
+                      logoSrc={link.logoSrc}
+                      fallbackIcon={link.fallbackIcon}
+                    />
                   ))}
                 </div>
 
