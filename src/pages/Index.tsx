@@ -103,6 +103,12 @@ const externalLinks: ExternalPlatformDef[] = [
   { title: "GOB", url: "https://app.gob.com.br/login", description: "Gestão de Obrigações Acessórias", logoSrc: "/external-logos/gob.ico" },
   { title: "Sittax", url: "https://app.sittax.com.br/login", description: "Apuração Fiscal Automatizada para o Simples Nacional", logoSrc: "/external-logos/sittax.png" },
   { title: "SIEG", url: "https://auth.sieg.com/", description: "Soluções Fiscais Estratégicas", logoSrc: "/external-logos/sieg.png" },
+  {
+    title: "PROCESSO.PRO",
+    url: "https://app.processo.pro/auth/login",
+    description: "Gestão de processos",
+    logoSrc: "/external-logos/processo-pro.ico",
+  },
 ];
 
 const prefeituras = [
