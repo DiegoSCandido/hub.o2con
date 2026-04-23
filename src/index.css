@@ -43,6 +43,9 @@
 
     --status-online: 152 69% 45%;
     --status-maintenance: 38 92% 50%;
+    --success: var(--status-online);
+    --warning: var(--status-maintenance);
+    --info: var(--primary-light);
 
     --sidebar-background: 0 0% 100%;
     --sidebar-foreground: 220 30% 15%;
@@ -109,6 +112,16 @@
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
+  }
+
+  .transition-smooth {
+    transition:
+      background-color 150ms ease,
+      border-color 150ms ease,
+      color 150ms ease,
+      box-shadow 150ms ease,
+      transform 150ms ease,
+      opacity 150ms ease;
   }
 }
 

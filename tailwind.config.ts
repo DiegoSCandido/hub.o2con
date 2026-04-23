@@ -29,6 +29,9 @@ export default {
         ring: "hsl(var(--ring))",
         background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",
+        success: "hsl(var(--success))",
+        warning: "hsl(var(--warning))",
+        info: "hsl(var(--info))",
         primary: {
           DEFAULT: "hsl(var(--primary))",
           foreground: "hsl(var(--primary-foreground))",
@@ -78,10 +81,16 @@ export default {
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
       },
+      backgroundImage: {
+        "gradient-card": "linear-gradient(180deg, hsl(var(--card)) 0%, hsl(var(--muted)) 100%)",
+        "gradient-urgent": "linear-gradient(135deg, hsl(var(--destructive)) 0%, hsl(var(--warning)) 100%)",
+      },
       boxShadow: {
         soft: "0 2px 15px -3px rgba(0, 0, 0, 0.07), 0 10px 20px -2px rgba(0, 0, 0, 0.04)",
         "soft-lg":
           "0 10px 40px -10px rgba(0, 0, 0, 0.1), 0 2px 10px -2px rgba(0, 0, 0, 0.04)",
+        card: "0 12px 28px -18px rgba(0, 0, 0, 0.22)",
+        elevated: "0 22px 55px -30px rgba(0, 0, 0, 0.35)",
         "glow-primary": "0 0 25px -5px hsl(var(--primary) / 0.3)",
         "glow-secondary": "0 0 25px -5px hsl(var(--secondary) / 0.3)",
         "inner-glow": "inset 0 1px 0 0 rgba(255, 255, 255, 0.1)",
@@ -95,10 +104,15 @@ export default {
           from: { height: "var(--radix-accordion-content-height)" },
           to: { height: "0" },
         },
+        "pulse-dot": {
+          "0%, 100%": { transform: "scale(1)", opacity: "1" },
+          "50%": { transform: "scale(0.75)", opacity: "0.65" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
+        "pulse-dot": "pulse-dot 1.1s ease-in-out infinite",
       },
     },
   },

@@ -13,15 +13,16 @@ import {
   Search,
   Bell,
   Mail,
-  MessageCircle,
-  Slack,
   Menu,
   BarChart3,
   type LucideIcon,
 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import Sidebar from "@/components/Sidebar";
 import AppCard from "@/components/AppCard";
 import { ExternalPlatformCard } from "@/components/ExternalPlatformCard";
+import { NewsSection } from "@/components/news/NewsSection";
+import { useNewsUnreadCount } from "@/hooks/useNews";
 import { useAuth } from "@/contexts/AuthContext";
 import { SidebarProvider, useSidebar } from "@/contexts/SidebarContext";
 import {
@@ -30,14 +31,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import loginBg from "@/assets/login-bg.jpg";
 import { isHubAlwaysVisibleSystem } from "@/lib/hub-always-visible-systems";
 
@@ -136,40 +129,6 @@ interface Notification {
   read?: boolean;
 }
 
-// Notificações mock - filtradas pelo usuário logado (substituir por API GET /notifications?userId=...)
-const mockNotifications: Notification[] = [
-  {
-    id: "1",
-    userId: "1",
-    source: "digisac",
-    title: "Nova mensagem no WhatsApp",
-    message: "Cliente solicitou certidão negativa",
-    timestamp: "Agora",
-    url: DIGISAC_URL,
-    read: false,
-  },
-  {
-    id: "2",
-    userId: "1",
-    source: "slack",
-    title: "Mensagem em #geral",
-    message: "João: Reunião às 14h confirmada",
-    timestamp: "5 min",
-    url: SLACK_URL,
-    read: false,
-  },
-  {
-    id: "3",
-    userId: "1",
-    source: "digisac",
-    title: "Conversa encerrada",
-    message: "Atendimento #1234 finalizado",
-    timestamp: "1h",
-    url: DIGISAC_URL,
-    read: true,
-  },
-];
-
 const usefulLinks = [
   { title: "Prefeituras", modal: true, description: "Portais das prefeituras" },
   { title: "Estado (SEF)", url: "https://www.sef.sc.gov.br/", description: "Secretaria da Fazenda do Estado" },
@@ -181,17 +140,15 @@ const usefulLinks = [
 ];
 
 function DashboardContent() {
+  const navigate = useNavigate();
   const { user } = useAuth();
   const { effectiveMainOffset, setMobileMenuOpen } = useSidebar();
+  const newsUnreadCountQuery = useNewsUnreadCount();
+  const newsUnreadCount = newsUnreadCountQuery.data?.unreadCount || 0;
   const [loading, setLoading] = useState(true);
   const [visibleCount, setVisibleCount] = useState(0);
   const [prefeiturasOpen, setPrefeiturasOpen] = useState(false);
-  const [notifications] = useState<Notification[]>(mockNotifications);
 
-  const userNotifications = user
-    ? notifications.filter((n) => n.userId === user.id)
-    : [];
-  const unreadCount = userNotifications.filter((n) => !n.read).length;
   const allowedSystems = new Set(
     (user?.systems || [])
       .map((s) => normalizeSystemKey(String(s)))
@@ -276,52 +233,20 @@ function DashboardContent() {
             >
               <Mail className="h-5 w-5" strokeWidth={1.5} />
             </a>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <button className="relative flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground transition-colors duration-150 hover:bg-accent hover:text-foreground">
-                  <Bell className="h-5 w-5" strokeWidth={1.5} />
-                  {unreadCount > 0 && (
-                    <span className="absolute right-2 top-2 flex h-4 min-w-4 items-center justify-center rounded-full brand-gradient px-1 text-[10px] font-semibold text-white">
-                      {unreadCount > 9 ? "9+" : unreadCount}
-                    </span>
-                  )}
-                </button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-[min(100vw-2rem,20rem)] sm:w-80">
-                <DropdownMenuLabel>Notificações</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                {userNotifications.length === 0 ? (
-                  <div className="px-2 py-6 text-center text-sm text-muted-foreground">
-                    Nenhuma notificação
-                  </div>
-                ) : (
-                  userNotifications.map((notif) => (
-                    <DropdownMenuItem key={notif.id} asChild>
-                      <a
-                        href={notif.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className={`flex cursor-pointer flex-col gap-0.5 px-3 py-2.5 ${!notif.read ? "bg-accent/50" : ""}`}
-                      >
-                        <div className="flex items-start gap-2">
-                          {notif.source === "digisac" ? (
-                            <MessageCircle className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" strokeWidth={1.5} />
-                          ) : (
-                            <Slack className="mt-0.5 h-4 w-4 shrink-0 text-[#4A154B]" strokeWidth={1.5} />
-                          )}
-                          <div className="min-w-0 flex-1">
-                            <p className="text-sm font-medium text-foreground">{notif.title}</p>
-                            <p className="truncate text-xs text-muted-foreground">{notif.message}</p>
-                            <p className="mt-0.5 text-[10px] text-muted-foreground">{notif.timestamp}</p>
-                          </div>
-                          <ExternalLink className="h-3 w-3 shrink-0 text-muted-foreground" strokeWidth={1.5} />
-                        </div>
-                      </a>
-                    </DropdownMenuItem>
-                  ))
-                )}
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <button
+              type="button"
+              onClick={() => navigate("/dashboard/noticias")}
+              className="relative flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground transition-colors duration-150 hover:bg-accent hover:text-foreground"
+              aria-label="Ver notícias e avisos"
+              title="Notícias e avisos"
+            >
+              <Bell className="h-5 w-5" strokeWidth={1.5} />
+              {newsUnreadCount > 0 && (
+                <span className="absolute right-2 top-2 flex h-4 min-w-4 items-center justify-center rounded-full brand-gradient px-1 text-[10px] font-semibold text-white">
+                  {newsUnreadCount > 9 ? "9+" : newsUnreadCount}
+                </span>
+              )}
+            </button>
             <div className="flex h-8 w-8 items-center justify-center rounded-full brand-gradient font-display text-xs font-semibold text-white shadow-glow-primary">
               AD
             </div>
@@ -345,6 +270,9 @@ function DashboardContent() {
               </motion.div>
             ) : (
               <motion.div key="content" initial={{ opacity: 0 }} animate={{ opacity: 1, transition: { duration: 0.15 } }}>
+                <div className="mb-10">
+                  <NewsSection />
+                </div>
                 {/* Sistemas */}
                 <div className="mb-6">
                   <h2 className="font-display text-xl font-bold text-foreground">Sistemas</h2>
@@ -362,6 +290,8 @@ function DashboardContent() {
                       initial={{ opacity: 0 }}
                       animate={i < visibleCount ? { opacity: 1 } : { opacity: 0 }}
                       transition={{ duration: 0.05 }}
+                      whileHover={{ y: -3 }}
+                      className="will-change-transform"
                     >
                       <AppCard {...appCardProps} />
                     </motion.div>
@@ -384,14 +314,15 @@ function DashboardContent() {
 
                 <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
                   {externalLinks.map((link) => (
-                    <ExternalPlatformCard
-                      key={link.title}
-                      title={link.title}
-                      description={link.description}
-                      href={link.url}
-                      logoSrc={link.logoSrc}
-                      fallbackIcon={link.fallbackIcon}
-                    />
+                    <motion.div key={link.title} whileHover={{ y: -3 }} className="will-change-transform">
+                      <ExternalPlatformCard
+                        title={link.title}
+                        description={link.description}
+                        href={link.url}
+                        logoSrc={link.logoSrc}
+                        fallbackIcon={link.fallbackIcon}
+                      />
+                    </motion.div>
                   ))}
                 </div>
 
@@ -406,32 +337,34 @@ function DashboardContent() {
                 <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
                   {usefulLinks.map((link) =>
                     "modal" in link && link.modal ? (
-                      <button
-                        key={link.title}
-                        type="button"
-                        onClick={() => setPrefeiturasOpen(true)}
-                        className="group flex w-full items-center justify-between rounded-lg border border-border bg-card p-6 text-left transition-colors duration-150 hover:border-primary"
-                      >
-                        <div>
-                          <h3 className="font-display text-base font-semibold text-card-foreground">{link.title}</h3>
-                          <p className="mt-1 text-sm text-muted-foreground">{link.description}</p>
-                        </div>
-                        <ExternalLink className="h-5 w-5 shrink-0 text-muted-foreground transition-colors duration-150 group-hover:text-primary" strokeWidth={1.5} />
-                      </button>
+                      <motion.div key={link.title} whileHover={{ y: -3 }} className="will-change-transform">
+                        <button
+                          type="button"
+                          onClick={() => setPrefeiturasOpen(true)}
+                          className="group flex w-full items-center justify-between rounded-lg border border-border bg-card p-6 text-left transition-colors duration-150 hover:border-primary"
+                        >
+                          <div>
+                            <h3 className="font-display text-base font-semibold text-card-foreground">{link.title}</h3>
+                            <p className="mt-1 text-sm text-muted-foreground">{link.description}</p>
+                          </div>
+                          <ExternalLink className="h-5 w-5 shrink-0 text-muted-foreground transition-colors duration-150 group-hover:text-primary" strokeWidth={1.5} />
+                        </button>
+                      </motion.div>
                     ) : (
-                      <a
-                        key={link.title}
-                        href={link.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="group flex items-center justify-between rounded-lg border border-border bg-card p-6 transition-colors duration-150 hover:border-primary"
-                      >
-                        <div>
-                          <h3 className="font-display text-base font-semibold text-card-foreground">{link.title}</h3>
-                          <p className="mt-1 text-sm text-muted-foreground">{link.description}</p>
-                        </div>
-                        <ExternalLink className="h-5 w-5 shrink-0 text-muted-foreground transition-colors duration-150 group-hover:text-primary" strokeWidth={1.5} />
-                      </a>
+                      <motion.div key={link.title} whileHover={{ y: -3 }} className="will-change-transform">
+                        <a
+                          href={link.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="group flex items-center justify-between rounded-lg border border-border bg-card p-6 transition-colors duration-150 hover:border-primary"
+                        >
+                          <div>
+                            <h3 className="font-display text-base font-semibold text-card-foreground">{link.title}</h3>
+                            <p className="mt-1 text-sm text-muted-foreground">{link.description}</p>
+                          </div>
+                          <ExternalLink className="h-5 w-5 shrink-0 text-muted-foreground transition-colors duration-150 group-hover:text-primary" strokeWidth={1.5} />
+                        </a>
+                      </motion.div>
                     )
                   )}
                 </div>

@@ -14,6 +14,7 @@ import {
   AlertTriangle,
   FileSearch,
   Settings,
+  Bell,
   HelpCircle,
   LogOut,
   ChevronLeft,
@@ -114,7 +115,11 @@ export default function Sidebar() {
 
   const mainNavItems: NavItem[] =
     user?.role === "admin"
-      ? [...filteredMainNav, { icon: Settings, label: "Administração", internalPath: "/admin/users" }]
+      ? [
+          ...filteredMainNav,
+          { icon: Bell, label: "Notícias", internalPath: "/admin/news" },
+          { icon: Settings, label: "Administração", internalPath: "/admin/users" },
+        ]
       : filteredMainNav;
 
   return (
