@@ -137,6 +137,8 @@ const usefulLinks = [
   { title: "Emissor Nacional", url: "https://www.nfse.gov.br/EmissorNacional/Login?ReturnUrl=%2fEmissorNacional", description: "Emissor Nacional de NF-e" },
   { title: "Portal NFe", url: "https://www.nfe.fazenda.gov.br/portal/principal.aspx", description: "Portal Nacional da NF-e" },
   { title: "E-CAC", url: "https://cav.receita.fazenda.gov.br/autenticacao/login", description: "Centro Virtual de Atendimento da Receita Federal" },
+  { title: "FGTS DIGITAL", url: "https://fgtsdigital.sistema.gov.br/portal/login", description: "Portal do FGTS Digital" },
+  { title: "E-SOCIAL", url: "https://login.esocial.gov.br/login.aspx", description: "Acesso ao portal do eSocial" },
 ];
 
 function DashboardContent() {
